@@ -1,5 +1,5 @@
-# Paths noueii/garden owns: the root tier. sync brings their changes in as root PRs, and rsi stages changes to
-# them on root-tier branches. Everything else (docs/, seeds/, skills/, MEMORY.md, memory/, README.md, AGENTS.md,
+# Paths noueii/garden owns: the root tier. sync brings their changes in as root PRs, and a retro (garden/skills/garden-memory/) stages changes to
+# them on root-tier branches. Everything else (docs/, seeds/, skills/, memory/, README.md, AGENTS.md,
 # CLAUDE.md) is yours. One path per line; a trailing / means the whole folder. Why each one is here:
 # garden/docs/decisions/0002-framework-folder.md.
 # the router: tools find a skill only by a SKILL.md at the root of its folder

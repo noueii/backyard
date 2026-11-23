@@ -1,3 +1,3 @@
 # expect: your own content (seeds, docs indexes, memory) never goes inside garden/
 . "$FIXTURES/good-seeds.sh"
-printf '# Memory\n' > garden/docs/MEMORY.md
+printf '# Memory\n' > garden/skills/garden-memory/INDEX.md

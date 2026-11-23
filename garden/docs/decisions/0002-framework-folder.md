@@ -1,6 +1,6 @@
 # 0002: the framework in one folder, `garden/` (2026-11-23)
 
-Status: **accepted** (the owner's decision). Amends [0001](0001-seeds.md) §1, §7 and §8 of the spec. Release: garden **2.0.0**; `seeds-format` stays **1.0**.
+Status: **accepted** (the owner's decision). **Amended by [0004](0004-skill-md.md)** (garden 3.0.0): garden's skills are `garden/skills/garden-<s>/SKILL.md`, so `SKILL.md` is no longer garden's only file of that name. Amends [0001](0001-seeds.md) §1, §7 and §8 of the spec. Release: garden **2.0.0**; `seeds-format` stays **1.0**.
 
 ## Decision
 garden is a framework, and its files no longer sit beside the owner's. Everything garden ships lives in one folder, `garden/`, except the router and two files that only work at the root.

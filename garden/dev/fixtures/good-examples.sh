@@ -4,9 +4,9 @@ set -e
 lines=""
 for n in task-manager reviewer planner coder; do
   mkdir -p "seeds/$n/docs" "seeds/$n/memory"
-  if [ -d "garden/skills/new-seed/examples/$n" ]; then cp garden/skills/new-seed/examples/$n/* "seeds/$n/"
+  if [ -d "garden/skills/garden-new-seed/examples/$n" ]; then cp garden/skills/garden-new-seed/examples/$n/* "seeds/$n/"
   else printf -- '---\nname: %s\nwhen: "Stand-in %s for the fixture."\nautonomy: stop-and-record\n---\nStand-in.\n' $n $n > "seeds/$n/SEED.md"; fi
-  printf '# Docs\n' > "seeds/$n/docs/INDEX.md"; printf '# Memory\n' > "seeds/$n/MEMORY.md"; printf '# Runs\n' > "seeds/$n/memory/runs.md"
+  printf '# Docs\n' > "seeds/$n/docs/INDEX.md"; printf '# Memory\n' > "seeds/$n/memory/INDEX.md"
   lines="$lines- $n: $(sed -n 's/^when: "\(.*\)"$/\1/p' "seeds/$n/SEED.md")
 "
 done

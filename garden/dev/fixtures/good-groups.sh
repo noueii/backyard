@@ -7,7 +7,7 @@ sed -i 's/^calls: \[reviewer\]$/calls: [reviewer]\ngroup: code/' seeds/task-mana
 for i in $(seq 1 20); do
   n=chore-$i; mkdir -p seeds/$n/docs seeds/$n/memory
   printf -- '---\nname: %s\nwhen: "Chore %s."\ngroup: chores\nautonomy: decide-and-record\n---\nDo chore %s.\n' $n $i $i > seeds/$n/SEED.md
-  printf '# Docs\n' > seeds/$n/docs/INDEX.md; printf '# Memory\n' > seeds/$n/MEMORY.md; printf '# Runs\n' > seeds/$n/memory/runs.md
+  printf '# Docs\n' > seeds/$n/docs/INDEX.md; printf '# Memory\n' > seeds/$n/memory/INDEX.md
   printf -- '- %s: Chore %s.\n' $n $i >> seeds/INDEX.new
 done
 mv seeds/INDEX.new seeds/INDEX.md

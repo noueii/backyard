@@ -1,10 +1,5 @@
-# memory files take every line from both sides when two clones append at once (sync rebases them)
-MEMORY.md merge=union
-memory/unrouted.md merge=union
-memory/archive.md merge=union
-seeds/*/MEMORY.md merge=union
-seeds/*/memory/runs.md merge=union
-seeds/*/memory/archive.md merge=union
-memory/lessons.md merge=union
+# The line-list memory files take every line from both sides when two clones add to them at once (sync rebases
+# memory commits). Memories themselves are one file each (memory/committed/, memory/pending/), so they need nothing.
+memory/INDEX.md merge=union
+seeds/*/memory/INDEX.md merge=union
 memory/rejected.md merge=union
-seeds/*/memory/lessons.md merge=union
