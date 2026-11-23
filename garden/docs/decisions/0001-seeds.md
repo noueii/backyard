@@ -4,6 +4,8 @@ Status: **accepted**. The owner accepted the plan in psai's ADR 0014 ("flakes"),
 
 **Amended by [0002](0002-framework-folder.md)** (garden 2.0.0): garden's own files moved into one folder, `garden/`. The layout diagram below is the layout as first decided; every other path in this record is updated to the new one.
 
+**Amended by [0003](0003-memory-layout.md)** (garden 3.0.0, `seeds-format` 2.0): memory is one file per memory (`memory/INDEX.md`, `committed/`, `pending/`), with no `MEMORY.md`, run lines, lessons, archive or unrouted file, and `rsi` is merged into `memory`. What this record says about those is the design as first decided.
+
 **Credits.** This plan was written in [noueii/psai](https://github.com/noueii/psai):
 - the structure and build plan: ADR 0014, branch [`plan-flakes`](https://github.com/noueii/psai/blob/plan-flakes/docs/decisions/0014-flakes.md);
 - the tool-discovery research: ADR 0013 §1–2, branch [`plan-one-skill`](https://github.com/noueii/psai/blob/plan-one-skill/docs/decisions/0013-one-stack-one-skill.md);
