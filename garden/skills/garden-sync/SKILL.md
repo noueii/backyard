@@ -1,6 +1,6 @@
 ---
-name: sync
-description: "Syncs the garden with origin and upstream: pulls (fast-forward only, keeping local memory), pushes memory commits, opens PRs for staged changes, and stages upstream releases as a root PR. Never merges. Use when a seed's text says to sync, or when the owner asks; never otherwise."
+name: garden-sync
+description: "Part of the garden skill, used through its router and seeds, never on its own. Syncs the garden with origin and upstream: pulls (fast-forward only, keeping local memory), pushes memory commits, opens PRs for staged changes, and stages upstream releases as a root PR. Never merges. Use when a seed's text says to sync, or when the owner asks; never otherwise."
 metadata: { seeds-format: "2.0" }
 ---
 # sync
@@ -9,8 +9,8 @@ Paths are relative to the garden root. **Run sync only when a seed's text says t
 
 ## Run it
 ```sh
-bash garden/skills/sync/sync.sh status      # what each step would do; changes nothing
-bash garden/skills/sync/sync.sh all         # pull, memory, upstream, staged, decisions; stops at the first failure
+bash garden/skills/garden-sync/sync.sh status      # what each step would do; changes nothing
+bash garden/skills/garden-sync/sync.sh all         # pull, memory, upstream, staged, decisions; stops at the first failure
 ```
 Run `status` first when the owner asked in general terms ("sync the garden"), and say what will happen. A seed whose text names a step ("sync memory at the end") runs just that step: `sync.sh memory`, after `sync.sh pull`. Run it after the depth-0 memory commit, from the live clone, on its default branch.
 

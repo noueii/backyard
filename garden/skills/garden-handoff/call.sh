@@ -7,7 +7,7 @@
 #   read-only: read and search files only: no edit, no write, no shell, no sub-agents, no MCP
 #   edit:      read-only + edit and write files: still no shell, no sub-agents, no MCP
 #   full:      the tool's defaults, under your own permission settings
-# What each tool truly enforces is in ENTRY.md ("Access levels"); check.sh is the backstop.
+# What each tool truly enforces is in SKILL.md ("Access levels"); check.sh is the backstop.
 set -euo pipefail
 
 tool="${1:?tool: claude|pi|omp|opencode}"

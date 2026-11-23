@@ -40,7 +40,7 @@ need_clean_default() {
   local cur; cur="$(g branch --show-current)"
   [ "$cur" = "$DEF" ] || { say "on branch '$cur', not the default branch '$DEF': stopped"; return 1; }
   [ -z "$(g status --porcelain --untracked-files=no)" ] || {
-    say "uncommitted changes in the live clone; commit memory first (garden/skills/memory/ENTRY.md): stopped"; g status --short | sed 's/^/  /'; return 1; }
+    say "uncommitted changes in the live clone; commit memory first (garden/skills/garden-memory/SKILL.md): stopped"; g status --short | sed 's/^/  /'; return 1; }
 }
 
 DEF=main; has_remote origin && DEF="$(default_branch)"
@@ -151,7 +151,7 @@ do_upstream() {
   if ! git -C "$T" merge -q --no-ff --no-edit "$tag" >/dev/null 2>&1; then
     say "upstream: the merge of $tag has conflicts, in the stage $T:"
     git -C "$T" diff --name-only --diff-filter=U | sed 's/^/  /'
-    say "resolve them (garden/skills/sync/ENTRY.md), commit with the message in $msg, then run the staged step"
+    say "resolve them (garden/skills/garden-sync/SKILL.md), commit with the message in $msg, then run the staged step"
     return 3
   fi
   git -C "$T" commit -q --amend -F "$msg"; rm -f "$msg"
@@ -171,7 +171,7 @@ do_decisions() {
     [ -n "$u" ] || continue
     grep -qF "$u" "$R/memory/rejected.md" 2>/dev/null && continue
     [ "$DRY" = 1 ] && { say "decisions: would record $u"; continue; }
-    python3 "$R/garden/skills/memory/write.py" reject "- $(date +%Y-%m-%d) | ${t//|/-} ($u) | closed without merging" \
+    python3 "$R/garden/skills/garden-memory/write.py" reject "- $(date +%Y-%m-%d) | ${t//|/-} ($u) | closed without merging" \
       || return 1
     found=$((found + 1))
   done <<< "$lines"

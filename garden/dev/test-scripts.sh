@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Maintainer-only: tests the scripts that ship inside skills, in temp git repos. No network, no AI.
-#   garden/skills/memory/write.py: new, seen, promote, remove, reject and check; the scan, the gate and the budgets;
-#   garden/skills/escalate/block.sh: the block, and what it refuses;
-#   garden/skills/handoff/call.sh: the command per tool and access level (dry run; garden/dev/prove-access.sh runs the tools);
-#   garden/skills/handoff/check.sh: snapshot and verify in a temp repo;
-#   garden/skills/sync/sync.sh: an upstream (noueii/garden), a user's origin and clones of it.
+#   garden/skills/garden-memory/write.py: new, seen, promote, remove, reject and check; the scan, the gate and the budgets;
+#   garden/skills/garden-escalate/block.sh: the block, and what it refuses;
+#   garden/skills/garden-handoff/call.sh: the command per tool and access level (dry run; garden/dev/prove-access.sh runs the tools);
+#   garden/skills/garden-handoff/check.sh: snapshot and verify in a temp repo;
+#   garden/skills/garden-sync/sync.sh: an upstream (noueii/garden), a user's origin and clones of it.
 # Usage: garden/dev/test-scripts.sh
 set -uo pipefail
 # Ignore a repo chosen by the caller's environment (git sets these in hooks and `rebase -x`): every git call
@@ -24,7 +24,7 @@ expect() { # <description> <expected exit> <command...>: runs it, keeps its outp
 has() { printf '%s' "$OUT" | grep -qF -- "$1" && pass "  … says: $1" || { fail "  … should say: $1"; echo "$OUT" | sed 's/^/         /'; }; }
 memline() { # <clone> <text>: an owner memory through write.py (a committed file and its INDEX.md line), committed
   local d; d="$(printf '%s' "$2" | tr -cs 'a-z0-9' '-' | sed 's/^-*//; s/-*$//')"
-  echo "$2." | python3 "$1/garden/skills/memory/write.py" new memory "owner-$d" --type fact --source "owner: \"$2\"" \
+  echo "$2." | python3 "$1/garden/skills/garden-memory/write.py" new memory "owner-$d" --type fact --source "owner: \"$2\"" \
     --owner --when "$2 matters" >/dev/null
   git -C "$1" add -A memory && git -C "$1" commit -qm "memory: $2"
 }
@@ -33,7 +33,7 @@ echo "write.py"
 G="$T/wgarden"; mkdir -p "$G"
 (cd "$ROOT" && git ls-files -co --exclude-standard | while IFS= read -r f; do [ -e "$f" ] && printf '%s\0' "$f"; done \
   | tar --null -T - -cf -) | (cd "$G" && tar -xf -)
-W() { python3 "$G/garden/skills/memory/write.py" "$@"; }
+W() { python3 "$G/garden/skills/garden-memory/write.py" "$@"; }
 Win() { local body="$1"; shift; printf '%s\n' "$body" | W "$@"; }
 mkdir -p "$G/seeds/coder/memory"; printf '# Memory\n' > "$G/seeds/coder/memory/INDEX.md"
 P="memory/pending/2026-11-23-api-tests-need-make-db.md"
@@ -97,7 +97,7 @@ has "(budget 30)"
 expect "the pre-commit script fails it too" 1 sh -c "cd '$G' && bash garden/check/pre-commit.sh"
 
 echo "block.sh"
-B="$ROOT/garden/skills/escalate/block.sh"
+B="$ROOT/garden/skills/garden-escalate/block.sh"
 expect "prints the block" 0 bash "$B" --kind escalation --seed coder --question "Use - or _?" --why "Docs don't say." --option "-" --option "_"
 [ "$OUT" = "$(printf '<<<SEED\nkind: escalation\nseed: coder\nquestion: Use - or _?\nwhy: Docs don'"'"'t say.\noptions: ["-" (recommended), "_"]\n>>>')" ] \
   && pass "  … exactly the fixed format" || { fail "  … not the fixed format:"; echo "$OUT" | sed 's/^/         /'; }
@@ -110,7 +110,7 @@ expect "refuses a multi-line field" 2 bash "$B" --kind question --seed a --quest
 expect "refuses a bad seed name" 2 bash "$B" --kind question --seed "Bad Name" --question "q?" --why w
 
 echo "call.sh (dry run)"
-C="$ROOT/garden/skills/handoff/call.sh"; echo "Say ok." > "$T/prompt.md"
+C="$ROOT/garden/skills/garden-handoff/call.sh"; echo "Say ok." > "$T/prompt.md"
 dry() { GARDEN_DRY=1 bash "$C" "$@" "$T/prompt.md"; }
 for case_ in "claude read-only|--tools Read,Grep,Glob --strict-mcp-config --permission-mode dontAsk" \
              "claude edit|--tools Read,Grep,Glob,Edit,Write --strict-mcp-config --permission-mode acceptEdits" \
@@ -129,7 +129,7 @@ expect "refuses an unknown tool" 2 dry codex read-only
 expect "refuses an unknown access" 2 dry pi write
 
 echo "check.sh"
-K="$ROOT/garden/skills/handoff/check.sh"; P="$T/project"
+K="$ROOT/garden/skills/garden-handoff/check.sh"; P="$T/project"
 git init -q "$P" && echo a > "$P/a.txt" && echo ignored > "$P/.gitignore" && git -C "$P" add -A && git -C "$P" commit -qm init
 echo staged > "$P/s.txt"; git -C "$P" add s.txt; idx="$(sha256sum < "$P/.git/index")"
 tok="$(bash "$K" snapshot "$P")"
@@ -168,7 +168,7 @@ git clone -q "$T/up.git" "$T/g" && git -C "$T/g" remote rename origin upstream
 git init -q --bare "$T/origin.git" && git -C "$T/g" remote add origin "$T/origin.git" && git -C "$T/g" push -q -u origin main
 git -C "$T/origin.git" symbolic-ref HEAD refs/heads/main
 git clone -q "$T/origin.git" "$T/g2"
-S="$T/g/garden/skills/sync/sync.sh"; S2="$T/g2/garden/skills/sync/sync.sh"
+S="$T/g/garden/skills/garden-sync/sync.sh"; S2="$T/g2/garden/skills/garden-sync/sync.sh"
 
 expect "status on a fresh garden" 0 bash "$S" status
 has "pull: up to date"

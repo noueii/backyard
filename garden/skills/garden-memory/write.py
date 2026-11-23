@@ -125,7 +125,7 @@ def add_to_index(mdir, name, when, top):
 
 def full(what):
     fail(f"BUDGET FULL: {what}. Nothing was written. Compact or remove first "
-         "(garden/skills/memory/retro.md, Compaction), then write again.")
+         "(garden/skills/garden-memory/retro.md, Compaction), then write again.")
 
 
 def count(mdir, part):
@@ -215,7 +215,7 @@ def cmd_seen(args):
     fm["seen"] = seen
     save(p, render(fm, body))
     print("write.py: seen by 1 task" if len(set(seen)) < 2 else f"write.py: seen by {len(set(seen))} tasks: a retro "
-          f"is due; it promotes this: promote {mdir}/pending/{name} --when \"<condition>\" (garden/skills/memory/retro.md)")
+          f"is due; it promotes this: promote {mdir}/pending/{name} --when \"<condition>\" (garden/skills/garden-memory/retro.md)")
 
 
 def cmd_promote(args):

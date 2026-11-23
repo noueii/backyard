@@ -1,15 +1,8 @@
 # expect: ok
-# A small, valid garden: two seeds that compose (task-manager calls reviewer through handoff, with a workflow.md),
+# A small, valid garden: two seeds that compose (task-manager calls reviewer through garden-handoff, with a workflow.md),
 # a bundled skill, a vendored skill, docs on both levels, and memory: committed, pending and rejected, shared and per seed. Other fixtures source
 # this file and then break one thing. Runs in a temp copy of the repo (garden/dev/test-validate.sh).
 set -e
-stub() { # <dir> <name>: a shared skill, only if the repo doesn't have it yet
-  [ -f "$1/ENTRY.md" ] && return 0
-  mkdir -p "$1"
-  printf -- '---\nname: %s\ndescription: "Stub for the fixture. Use when testing."\n---\nStub.\n' "$2" > "$1/ENTRY.md"
-}
-for s in memory escalate handoff; do stub "garden/skills/$s" "$s"; done
-
 mkdir -p seeds/reviewer/docs seeds/reviewer/memory/committed seeds/task-manager/docs seeds/task-manager/memory/committed \
   seeds/task-manager/memory/pending seeds/task-manager/skills/plan-format seeds/reviewer/skills/tdd memory/committed memory/pending docs
 
@@ -26,7 +19,7 @@ You are the reviewer. You review diffs and report findings; you never change cod
 Read the diff, check it against `docs/INDEX.md`, and list findings by severity.
 Done when: every changed file is reviewed. Never: edit files.
 EOF
-cat > seeds/reviewer/skills/tdd/ENTRY.md <<'EOF'
+cat > seeds/reviewer/skills/tdd/SKILL.md <<'EOF'
 ---
 name: tdd
 description: "Test-driven development, vendored."
@@ -54,7 +47,7 @@ cat > seeds/task-manager/SEED.md <<'EOF'
 name: task-manager
 when: "Taking a feature or fix from request to reviewed change: plans, implements, then gets it reviewed."
 skills:
-  required: [escalate, handoff, plan-format]
+  required: [garden-escalate, garden-handoff, plan-format]
 calls: [reviewer]
 ---
 You are the task manager. Follow [workflow.md](workflow.md).
@@ -66,7 +59,7 @@ cat > seeds/task-manager/workflow.md <<'EOF'
 2. Implement.
 3. Call `seed:reviewer`. If it asks for changes, fix and call it again, at most twice, then stop and record.
 EOF
-cat > seeds/task-manager/skills/plan-format/ENTRY.md <<'EOF'
+cat > seeds/task-manager/skills/plan-format/SKILL.md <<'EOF'
 ---
 name: plan-format
 description: "The owner's plan format. Use when writing a plan."

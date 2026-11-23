@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Maintainer-only: the no-AI install proof. In a temp HOME, it installs this repo's HEAD the documented way (a git
 # clone over local smart HTTP, then the two symlinks) and checks, for each installed tool:
-#   - discovery: pi, omp and opencode list exactly one new skill, `garden` (no model session);
-#   - what reaches a model (garden/dev/fake-model.py): `garden` and its description, and no internal skill (memory,
-#     escalate, handoff, sync, new-seed), for Claude Code, pi, omp and opencode;
-#   - a seed, a bundled skill and a vendored ENTRY.md add nothing; a nested SKILL.md is ignored by Claude Code, pi
-#     and omp, and registered by opencode (why the spec bans it; the probe is removed again);
+#   - discovery (no model session): pi and omp list exactly one new skill, `garden`; opencode lists `garden` and the
+#     nested skills (garden's five garden-* skills, and with seeds their bundled skills), by design (decision 0004);
+#   - what reaches a model (garden/dev/fake-model.py): `garden` and its description for all four; no nested skill for
+#     Claude Code, pi and omp; for opencode, garden's nested skills, each described as part of the garden skill;
+#   - a seed, a bundled skill and a vendored skill add nothing for Claude Code, pi and omp; a SKILL.md outside a skill
+#     folder (forbidden by the spec) is ignored by Claude Code, pi and omp and registered by opencode (the probe is
+#     removed again);
 #   - the optional global line reaches the request;
 #   - an update (a commit upstream, then git pull) reaches the next request.
 # The real HOME is never touched; no credentials, no network. Tools not installed are skipped with a note.
@@ -59,12 +61,16 @@ python3 "$G/garden/check/validate.py" "$G" >/dev/null && pass "the installed gar
 new_skills() { # <tool>: skills listed now that were not listed before the install
   comm -13 <(printf '%s\n' "${BASE[$1]}" | sort -u) <("${1}_skills" | sort -u) | grep -v '^$'
 }
-discovery() { # <label>
+GARDEN_SKILLS="garden garden-escalate garden-handoff garden-memory garden-new-seed garden-sync"
+discovery() { # <label> [opencode's extra nested skills]: pi and omp see only garden; opencode the nested ones too
+  local want
   for tool in pi omp opencode; do
     case " $TOOLS " in *" $tool "*) ;; *) continue ;; esac
     command -v "$tool" >/dev/null || continue
     got="$(new_skills "$tool" | tr '\n' ' ' | sed 's/ $//')"
-    [ "$got" = garden ] && pass "$tool discovers exactly one new skill, garden ($1)" || fail "$tool discovers: '$got' ($1)"
+    if [ "$tool" = opencode ]; then want="$(printf '%s\n' $GARDEN_SKILLS ${2:-} | sort -u | tr '\n' ' ' | sed 's/ $//')"
+    else want=garden; fi
+    [ "$got" = "$want" ] && pass "$tool discovers exactly: $got ($1)" || fail "$tool discovers: '$got', wanted '$want' ($1)"
   done
 }
 discovery "fresh install"
@@ -101,34 +107,40 @@ requests() { # <label> [text that must be in the request] [text that must not]
     while IFS= read -r pair; do
       [ -n "$pair" ] || continue
       grep -qF -- "${pair#*:}" "$req" && leak="$leak ${pair%%:*}"
-    done <<< "$(printf '%s\n' "memory:Reads and writes the garden's shared" \
-      "escalate:When and how a seed asks the owner" "handoff:Runs another seed: calls it" \
-      "sync:Syncs the garden with origin and upstream" "new-seed:Builds, changes or retires a seed")"
-    [ -z "$leak" ] && pass "$tool: no internal skill is offered ($label)" || fail "$tool: internal skills offered:$leak ($label)"
+    done <<< "$(printf '%s\n' "garden-memory:Reads and writes the garden's shared" \
+      "garden-escalate:When and how a seed asks the owner" "garden-handoff:Runs another seed: calls it" \
+      "garden-sync:Syncs the garden with origin and upstream" "garden-new-seed:Builds, changes or retires a seed")"
+    if [ "$tool" = opencode ]; then
+      [ -n "$leak" ] && note "$tool: offers garden's nested skills, as designed:$leak ($label)" || fail "$tool: lists no nested skill ($label)"
+      grep -qF "Part of the garden skill, used through its router and seeds, never on its own." "$req" \
+        && pass "$tool: the nested skills say they are used through garden ($label)" || fail "$tool: the nested descriptions lack the garden line ($label)"
+    else
+      [ -z "$leak" ] && pass "$tool: no nested skill is offered ($label)" || fail "$tool: nested skills offered:$leak ($label)"
+    fi
     if [ -n "$must" ]; then grep -qF -- "$must" "$req" && pass "$tool: the request has: $must" || fail "$tool: the request lacks: $must"; fi
     if [ -n "$mustnot" ]; then ! grep -qF -- "$mustnot" "$req" && pass "$tool: the request does not have: $mustnot" || note "$tool: the request has: $mustnot"; fi
   done
 }
 requests "fresh install"
 
-echo "a seed, a bundled skill and a vendored skill add nothing"
+echo "a seed, a bundled skill and a vendored skill: nothing more for Claude Code, pi and omp"
 FIXTURES="$ROOT/garden/dev/fixtures" bash -c "cd '$G' && . '$ROOT/garden/dev/fixtures/good-seeds.sh'" && git -C "$G" add -A && git -C "$G" commit -qm "two seeds" \
   && python3 "$G/garden/check/validate.py" "$G" >/dev/null && pass "two seeds, a bundled and a vendored skill, valid" || fail "the seeds overlay"
-discovery "with seeds"
+discovery "with seeds" "plan-format tdd"
 requests "with seeds" "" "Test-driven development, vendored."
 
-echo "a nested SKILL.md (forbidden by the spec): who registers it"
-mkdir -p "$G/seeds/reviewer/skills/nested-probe"
-printf -- '---\nname: nested-probe\ndescription: "Nested probe skill. Use when never."\n---\nx\n' > "$G/seeds/reviewer/skills/nested-probe/SKILL.md"
+echo "a SKILL.md outside a skill folder (forbidden by the spec): who registers it"
+mkdir -p "$G/seeds/reviewer/notes/nested-probe"
+printf -- '---\nname: nested-probe\ndescription: "Nested probe skill. Use when never."\n---\nx\n' > "$G/seeds/reviewer/notes/nested-probe/SKILL.md"
 out="$(python3 "$G/garden/check/validate.py" "$G" 2>&1)"
-printf '%s' "$out" | grep -q "SKILL.md is only allowed at the root" && pass "the validator rejects it" || fail "the validator accepts it"
+printf '%s' "$out" | grep -q "a SKILL.md is allowed only at the root" && pass "the validator rejects it" || fail "the validator accepts it"
 for tool in $TOOLS; do
   command -v "$tool" >/dev/null || continue
   req="$(ask "$tool")"
   if grep -qF "Nested probe skill" "$req"; then note "$tool registers a nested SKILL.md as another skill"
   else note "$tool ignores a nested SKILL.md"; fi
 done
-rm -rf "$G/seeds/reviewer/skills/nested-probe"
+rm -rf "$G/seeds/reviewer/notes"
 
 echo "the optional global line"
 LINE="Start every task with the garden skill, unless your prompt says you were called as a seed inside a running task."

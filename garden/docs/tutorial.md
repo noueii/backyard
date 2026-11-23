@@ -10,7 +10,7 @@ cd ~/src/garden
 git remote rename origin upstream                      # noueii/garden: where updates come from
 gh repo create <you>/garden --private --source . --push   # your copy: origin
 ```
-No GitHub? Skip the last line: the garden works locally, and `sync` just skips pushing. A GitHub fork works too, but a fork of a public repo is public, and so would be your memory.
+No GitHub? Skip the last line: the garden works locally, and `garden-sync` just skips pushing. A GitHub fork works too, but a fork of a public repo is public, and so would be your memory.
 
 One garden per environment: if you keep work and personal apart (two WSL distros, two machines), make one garden in each.
 
@@ -21,7 +21,7 @@ mkdir -p ~/.agents/skills ~/.claude/skills
 ln -s ~/src/garden ~/.agents/skills/garden     # opencode, pi, omp
 ln -s ~/src/garden ~/.claude/skills/garden     # Claude Code (omp and opencode see both and keep one)
 ```
-Each tool now lists one skill, `garden`, and nothing else from the repo: the shared skills inside are `ENTRY.md` files, which no tool discovers.
+Claude Code, pi and omp now list one skill, `garden`. The skills inside are standard `SKILL.md` files the router reads by path; opencode lists them too, as `garden-memory`, `garden-sync` and so on (and your seeds' own skills), each described as used through the garden.
 
 **Optional:** to start every task with the garden, add this line by hand to each tool's global instructions (`~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.omp/agent/AGENTS.md`):
 > Start every task with the `garden` skill, unless your prompt says you were called as a seed inside a running task.
@@ -31,14 +31,14 @@ The "unless" matters: a seed called by another seed runs as a sub-agent, which r
 **Just trying it?** `npx skills add noueii/garden -g` installs a read-only copy: no git, so memory and self-improvement save nothing (they go into each report instead).
 
 ## 3. Your first seed
-Start your tool in a project and give it a task you do often, for example "review the diff on this branch". The router finds no seed that fits, so it offers to make one (`new-seed`). Say yes. It asks one question at a time, each with its recommendation first:
+Start your tool in a project and give it a task you do often, for example "review the diff on this branch". The router finds no seed that fits, so it offers to make one (`garden-new-seed`). Say yes. It asks one question at a time, each with its recommendation first:
 1. the purpose, in one sentence;
 2. `when`: the line the router will match future tasks against;
 3. the docs it should read;
 4. skills (shared, its own, or ones you installed elsewhere);
 5. whether it calls other seeds;
 6. its `access`: a reviewer is `read-only`;
-7. whether it asks you when stuck (`escalate`) or decides and records;
+7. whether it asks you when stuck (`garden-escalate`) or decides and records;
 8. whether it should sync the garden;
 9. facts it should start with.
 
@@ -49,12 +49,12 @@ git branch --list 'garden/*'
 git log -p -1 garden/<the branch>
 ```
 Then take it: with an `origin`, through its pull request (ask to "sync the garden", section 6, then merge the PR on GitHub); with no `origin`, merge it locally with `git merge garden/<the branch>`. (With an `origin`, keep your default branch to memory commits and merged PRs, so sync can always fast-forward it.)
-The seed is `seeds/reviewer/SEED.md`: a short frontmatter and plain prose. Change it any time by asking for a change ("change the reviewer so it ..."): `new-seed` stages that too.
+The seed is `seeds/reviewer/SEED.md`: a short frontmatter and plain prose. Change it any time by asking for a change ("change the reviewer so it ..."): `garden-new-seed` stages that too.
 
 ## 4. A second seed that calls the first
-Seeds compose: a seed can run another through `handoff`. Ask for a "task manager" seed that plans, implements, and then calls `reviewer`. `new-seed` writes its order in your words, in SEED.md or a free-form `workflow.md`; there's an example in `garden/skills/new-seed/examples/task-manager/`.
+Seeds compose: a seed can run another through `garden-handoff`. Ask for a "task manager" seed that plans, implements, and then calls `reviewer`. `garden-new-seed` writes its order in your words, in SEED.md or a free-form `workflow.md`; there's an example in `garden/skills/garden-new-seed/examples/task-manager/`.
 
-When the task manager calls the reviewer, handoff starts it as a fresh session of the same tool with **only read tools**, because the reviewer is `read-only`. Your tool enforces that (it never offers the reviewer a shell or a write tool), and a git snapshot checks afterwards that nothing changed. What each tool enforces is in `garden/skills/handoff/access.md`.
+When the task manager calls the reviewer, handoff starts it as a fresh session of the same tool with **only read tools**, because the reviewer is `read-only`. Your tool enforces that (it never offers the reviewer a shell or a write tool), and a git snapshot checks afterwards that nothing changed. What each tool enforces is in `garden/skills/garden-handoff/access.md`.
 
 ## 5. It remembers, and improves itself
 A seed writes memory only when something is worth it: you correct it or tell it a fact, something fails, or something surprises it. A routine run writes nothing. Each memory is one small file in `memory/` (shared) or `seeds/<name>/memory/`:
@@ -70,10 +70,10 @@ A rule is never memory: your correction of how a seed behaves ("never do X") is 
 
 When a pending memory is seen again, or memory nears its budget, or you ask, the seed runs a **retro**: it promotes what two tasks saw, removes what is stale, and stages at most five changes to docs and seeds, each with its evidence, always proposing at least one removal. If you turn a proposal down, it goes to `memory/rejected.md`, and won't be proposed again without new evidence.
 
-Memory is committed **locally** at the end of each task, and never pushed except by `sync`. Every memory write goes through `garden/skills/memory/write.py`, which refuses secrets, invisible characters and instruction-like text, and fails when memory is full, so the retro compacts it first; the validator checks the same on every commit.
+Memory is committed **locally** at the end of each task, and never pushed except by `garden-sync`. Every memory write goes through `garden/skills/garden-memory/write.py`, which refuses secrets, invisible characters and instruction-like text, and fails when memory is full, so the retro compacts it first; the validator checks the same on every commit.
 
 ## 6. Sync: push, pull, and update
-Nothing leaves your machine until you ask. Say "sync the garden" (or give a seed a line such as "sync at the end of every run"). `sync` shows what it will do, then:
+Nothing leaves your machine until you ask. Say "sync the garden" (or give a seed a line such as "sync at the end of every run"). `garden-sync` shows what it will do, then:
 1. pulls `origin`, fast-forward only, replaying your local memory commits on top;
 2. pushes those memory commits to your default branch;
 3. stages a new garden release from `upstream` on its own branch;
@@ -82,7 +82,7 @@ Nothing leaves your machine until you ask. Say "sync the garden" (or give a seed
 
 It never merges a pull request: you do. You can run it yourself:
 ```sh
-bash ~/src/garden/garden/skills/sync/sync.sh status
+bash ~/src/garden/garden/skills/garden-sync/sync.sh status
 ```
 
 ## 7. Check it

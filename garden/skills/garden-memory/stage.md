@@ -1,6 +1,6 @@
 # The stage
 
-Loaded at the end of a task, only when something was staged: an owner correction of how a seed behaves (staged at once, quoting the owner), a retro's changes (`garden/skills/memory/retro.md`), or new-seed's.
+Loaded at the end of a task, only when something was staged: an owner correction of how a seed behaves (staged at once, quoting the owner), a retro's changes (`garden/skills/garden-memory/retro.md`), or new-seed's.
 
 Behaviour changes are never made in the live clone. They are made in a **stage**: a git worktree outside the repo and outside every skills folder (opencode scans dot folders and would find a second `SKILL.md` inside the repo).
 

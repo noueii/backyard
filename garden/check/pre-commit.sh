@@ -7,5 +7,5 @@ R="$(git rev-parse --show-toplevel)" || exit 1
 if ! python3 -c 'import yaml' 2>/dev/null; then echo "pre-commit: python3 with PyYAML not found; skipped" >&2; exit 0; fi
 out="$(python3 "$R/garden/check/validate.py" "$R")" && exit 0
 echo "$out" | grep -v '^needs installed' >&2
-echo "pre-commit: refused. Fix the errors above (memory over budget: compact it, garden/skills/memory/retro.md), then commit again." >&2
+echo "pre-commit: refused. Fix the errors above (memory over budget: compact it, garden/skills/garden-memory/retro.md), then commit again." >&2
 exit 1

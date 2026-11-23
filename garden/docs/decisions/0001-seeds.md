@@ -4,6 +4,8 @@ Status: **accepted**. The owner accepted the plan in psai's ADR 0014 ("flakes"),
 
 **Amended by [0002](0002-framework-folder.md)** (garden 2.0.0): garden's own files moved into one folder, `garden/`. The layout diagram below is the layout as first decided; every other path in this record is updated to the new one.
 
+**Amended by [0004](0004-skill-md.md)** (garden 3.0.0): the skills inside a garden are standard `SKILL.md` files, garden's named `garden-*`; "exactly one `SKILL.md` per installed folder" (§1) no longer holds, and opencode lists the nested ones.
+
 **Amended by [0003](0003-memory-layout.md)** (garden 3.0.0, `seeds-format` 2.0): memory is one file per memory (`memory/INDEX.md`, `committed/`, `pending/`), with no `MEMORY.md`, run lines, lessons, archive or unrouted file, and `rsi` is merged into `memory`. What this record says about those is the design as first decided.
 
 **Credits.** This plan was written in [noueii/psai](https://github.com/noueii/psai):
@@ -127,10 +129,10 @@ Unchanged from 0014 §2.5, renamed: MEMORY.md is Orca's format (`- YYYY-MM-DD <f
 As 0014 §2.7, enforced by the validator: router description ≤ 1024 characters and body ≤ 600 words; ENTRY.md body ≤ 800 words, supporting file ≤ 300 lines; SEED.md body ≤ 500 words, `when` ≤ 200 characters; `workflow.md` ≤ 800 words; a doc ≤ 1,500 words; an INDEX ≤ 40 entries of ≤ 160 characters; a `seeds/INDEX.md` line ≤ 220 characters; MEMORY.md ≤ 60 lines of ≤ 400 characters; a topic file ≤ 300 lines; `runs.md` and `unrouted.md` ≤ 200 lines. rsi tunes them by root PR.
 
 ## 3. The hand-over sequence (in the router, once for every seed)
-1. **Start memory:** read `garden/skills/memory/ENTRY.md`, the root and the seed's MEMORY.md, then both docs indexes.
+1. **Start memory:** read `garden/skills/garden-memory/SKILL.md`, the root and the seed's MEMORY.md, then both docs indexes.
 2. **Become the seed:** read SEED.md, load its required skills, check `autonomy` against `escalate`. If `access` is not `full`, keep to it: at depth 0 that is an instruction the seed follows, not an enforced limit (§6).
 3. **Work:** follow SEED.md (and `workflow.md` if it links one). Write memory as you go.
-4. **End:** read `garden/skills/rsi/ENTRY.md`, append the run line, run a retro if triggered, commit memory and the stage **locally**, then report. If the seed's text says to sync at the end, read `garden/skills/sync/ENTRY.md`.
+4. **End:** read `garden/skills/rsi/ENTRY.md`, append the run line, run a retro if triggered, commit memory and the stage **locally**, then report. If the seed's text says to sync at the end, read `garden/skills/garden-sync/SKILL.md`.
 
 A **called** seed does the same in its sub-agent, but never re-routes, never commits, and never syncs. With access below `full` it cannot write at all, so it returns its memory lines, run line and proposed changes in its report, and the caller writes them.
 
@@ -152,7 +154,7 @@ Reads root and seed MEMORY.md and topic files on demand; writes in the live clon
 Records the run, runs retros, compacts and stages (§4). Files: `ENTRY.md`, `retro.md`, `stage.md`. It may hand to `new-seed` to propose or retire a seed.
 
 ### 5.3 `escalate` (optional)
-When to ask (unclear and changes the outcome; irreversible or visible to others; against a doc rule; stuck after 2 tries; scope grew), otherwise decide and record. The fixed `<<<SEED … >>>` block is built by `garden/skills/escalate/block.sh` (kinds `escalation`, `review`, `question`, `route`), which refuses an empty field, more than one `?`, or more than 4 options. The report format: `## Done`, `## Decided alone`, `## Escalated`, `## Open`, `## Memory`, `## Staged`. A seed without escalate has an `autonomy` fallback: `decide-and-record` (safest reversible option; never irreversible or outward actions) or `stop-and-record`.
+When to ask (unclear and changes the outcome; irreversible or visible to others; against a doc rule; stuck after 2 tries; scope grew), otherwise decide and record. The fixed `<<<SEED … >>>` block is built by `garden/skills/garden-escalate/block.sh` (kinds `escalation`, `review`, `question`, `route`), which refuses an empty field, more than one `?`, or more than 4 options. The report format: `## Done`, `## Decided alone`, `## Escalated`, `## Open`, `## Memory`, `## Staged`. A seed without escalate has an `autonomy` fallback: `decide-and-record` (safest reversible option; never irreversible or outward actions) or `stop-and-record`.
 
 ### 5.4 `handoff` (optional, with `calls`)
 **Call** a seed as a fresh sub-agent and use its result, or **pass** it the task and finish. Guards: the target is in `calls`, no seed twice in the chain, depth ≤ 3, a called seed never re-routes. How a call starts depends on the target's `access` (§6). A **pass** continues in the same session, so it cannot enforce access: passing to a seed whose access is not `full` is refused (call it instead).
@@ -171,9 +173,9 @@ Builds, changes or retires a seed with the owner, one question per message (esca
 
 ## 6. Access levels (new)
 `access` in SEED.md frontmatter: `read-only` (no edit, no shell), `edit` (file edits, no shell), `full` (everything; the default). It limits a seed **when it is called** through handoff.
-- **Read-only and edit** calls run the target as a fresh, non-interactive session of the same tool with a tool allowlist: `bash garden/skills/handoff/call.sh <tool> <access> <prompt-file>`. The tool itself enforces the limit.
+- **Read-only and edit** calls run the target as a fresh, non-interactive session of the same tool with a tool allowlist: `bash garden/skills/garden-handoff/call.sh <tool> <access> <prompt-file>`. The tool itself enforces the limit.
 - **Full** calls use the tool's in-session sub-agent (Claude Code's Agent tool, opencode's and omp's `task` tool; pi has none and uses `call.sh pi full`).
-- **Backstop:** before every call, `garden/skills/handoff/check.sh snapshot` records HEAD, refs and a tree of the working directory (untracked files included) through a temporary index, so it touches nothing; after it, `check.sh verify <access> <token>` fails on any change for read-only, and on a commit or ref change (only a shell can do that) for edit. For access below `full` the garden root is snapshotted too and must not change at all.
+- **Backstop:** before every call, `garden/skills/garden-handoff/check.sh snapshot` records HEAD, refs and a tree of the working directory (untracked files included) through a temporary index, so it touches nothing; after it, `check.sh verify <access> <token>` fails on any change for read-only, and on a commit or ref change (only a shell can do that) for edit. For access below `full` the garden root is snapshotted too and must not change at all.
 - **The garden is outside the working directory:** a called seed reads its SEED.md, docs and memory there while it works in a project. `call.sh` grants that read explicitly where a tool limits paths.
 
 Proven by `garden/dev/prove-access.sh` against a scripted fake model in a temp HOME (2026-11-23): for each tool and level it compares the tools offered in the request with the allowlist, then has the model call the write tool, the shell, and the read tool on a file outside the working directory, including tools that were not offered.
@@ -235,7 +237,7 @@ One PR on noueii/garden (the owner asked for one PR rather than a stack), with o
 8. **No LICENSE** for now (owner); the README says it's undecided.
 
 ## 13. Memory safety (owner-approved addition, 2026-11-23)
-From research on agent memory (Letta Code's MemFS, OpenClaw's promotion gates, Hermes Agent's hard caps), the owner approved one bundle. All of it goes through one script, `garden/skills/memory/write.py`, which every memory write uses; its formats and budgets come from `garden/check/validate.py`, so there is one table.
+From research on agent memory (Letta Code's MemFS, OpenClaw's promotion gates, Hermes Agent's hard caps), the owner approved one bundle. All of it goes through one script, `garden/skills/garden-memory/write.py`, which every memory write uses; its formats and budgets come from `garden/check/validate.py`, so there is one table.
 1. **Promotion gate.** A new lesson lands in `memory/lessons.md` (root or seed) with `· seen: <run>`. It moves into MEMORY.md only once 2 runs saw it, or when the owner states it directly (`--owner`). write.py refuses any other MEMORY.md write.
 2. **Untrusted text is never promoted.** Tool output, web pages, issue text and called seeds' reports become memory only once verified; a caller writes what a called seed returned as lessons. Before any write, write.py refuses instruction-like text (including "always"/"never" rules, which go to docs), secrets and tokens, and invisible or control characters, and says why; the run line counts refusals (`refused=`).
 3. **Hard budgets.** In the spec table (`garden/docs/SPEC.md` §7). Compaction is due at 80 %; at 100 % a write fails loudly (nothing truncated, no warning-and-continue), so rsi compacts or removes first. The validator fails any file over budget in CI, and the optional `garden/check/pre-commit.sh` does it locally. MEMORY.md is ordered most valuable first, because tools may load only the start of a long file.

@@ -22,13 +22,21 @@ SKILL_KEYS = {"name", "description", "license", "compatibility", "metadata", "al
 SEED_KEYS = {"name", "when", "group", "skills", "calls", "access", "autonomy"}
 ACCESS = {"read-only", "edit", "full"}
 AUTONOMY = {"decide-and-record", "stop-and-record"}
-MANDATORY = ("memory",)
-# The framework lives in garden/ (garden/docs/decisions/0002-framework-folder.md). Its skills are exactly these;
-# the owner's own shared skills live in skills/ at the root.
+MANDATORY = ("garden-memory",)
+# The framework lives in garden/ (garden/docs/decisions/0002-framework-folder.md). Its skills are exactly these,
+# prefixed so they don't clash with other installed skills in tools that list nested ones (0004); the owner's own
+# shared skills live in skills/ at the root, and never take the prefix.
 FRAMEWORK = "garden"
-FRAMEWORK_SKILLS = ("memory", "escalate", "handoff", "sync", "new-seed")
-# Skills garden no longer ships, and where they went (garden/docs/MIGRATING.md).
-RETIRED_SKILLS = {"rsi": "merged into memory (seeds-format 2.0)"}
+PREFIX = "garden-"
+FRAMEWORK_SKILLS = ("garden-memory", "garden-escalate", "garden-handoff", "garden-sync", "garden-new-seed")
+# Skill names garden no longer ships, and where they went (garden/docs/MIGRATING.md).
+RETIRED_SKILLS = {"rsi": "merged into garden-memory", "memory": "renamed garden-memory",
+                  "escalate": "renamed garden-escalate", "handoff": "renamed garden-handoff",
+                  "sync": "renamed garden-sync", "new-seed": "renamed garden-new-seed"}
+# Where a SKILL.md may be: the router, and one per skill folder (0004). Nowhere else, in any casing.
+SKILL_MD_AT = re.compile(r"^(SKILL\.md|(garden/skills|skills|seeds/[^/]+/skills)/[^/]+/SKILL\.md)$")
+# What a garden skill's description says first: it runs through the router, not on its own.
+THROUGH_GARDEN = "Part of the garden skill"
 FRAMEWORK_DIRS = ("skills", "docs", "check", "dev")
 # Garden-owned paths outside garden/, each needed at the root (0002): the router, CI and the union merge.
 ROOT_OWNED = ("SKILL.md", "garden/", ".github/workflows/garden.yml", ".gitattributes")
@@ -39,7 +47,7 @@ OLD_LAYOUT = ("spec/SPEC.md", "spec/upstream-paths.txt", "spec/MIGRATING.md", "c
               "dev/check-upstream.sh", "dev/test-validate.sh", "dev/test-scripts.sh", "dev/decisions/README.md")
 # Names that only the owner's content uses: never inside garden/ (new-seed's examples excepted for SEED.md).
 USER_NAMES = ("MEMORY.md", "SEED.md", "INDEX.md")
-EXAMPLES = "garden/skills/new-seed/examples/"
+EXAMPLES = "garden/skills/garden-new-seed/examples/"
 REJECTED_INTRO = "Proposals the owner declined. Read before proposing a change; never re-propose one without new evidence."
 REJECTED_LINE = re.compile(r"^- \d{4}-\d{2}-\d{2} \| [^|]+ \| [^|]+$")
 DOC_LINE = re.compile(r"^- \[([^\]/]+\.md)\]\(([^)]+)\): read when .+\.$")
@@ -125,8 +133,9 @@ def walk(root, rep):
                 continue
             if n == ".git" and reld != ".":
                 rep.err(rel, "a .git file below the root (a worktree or submodule inside the garden)")
-            if n.lower() == "skill.md" and rel != "SKILL.md":
-                rep.err(rel, "SKILL.md is only allowed at the root, in any casing: use ENTRY.md")
+            if n.lower() == "skill.md" and not SKILL_MD_AT.match(rel.replace(os.sep, "/")):
+                rep.err(rel, "a SKILL.md is allowed only at the root and as a skill's own file (garden/skills/<s>/, "
+                        "skills/<s>/, seeds/<x>/skills/<s>/), always in that casing")
             files.append(rel)
     return files
 
@@ -151,10 +160,6 @@ def check_separation(root, files, rep):
     for rel in OLD_LAYOUT:
         if os.path.exists(os.path.join(root, rel)):
             rep.err(rel, "a garden-owned file outside garden/ (the old layout: garden/docs/MIGRATING.md)")
-    for s in FRAMEWORK_SKILLS:
-        if os.path.exists(os.path.join(root, "skills", s)):
-            rep.err(os.path.join("skills", s), f"{s} is garden's skill: it lives in garden/skills/{s}, "
-                    "and skills/ holds only your own (garden/docs/MIGRATING.md)")
     for x in sorted(os.listdir(g)) if os.path.isdir(g) else []:
         if x not in FRAMEWORK_DIRS:
             rep.err(os.path.join(FRAMEWORK, x), f"garden/ holds only {', '.join(FRAMEWORK_DIRS)}: "
@@ -162,7 +167,7 @@ def check_separation(root, files, rep):
     for x in subdirs(os.path.join(g, "skills")):
         if x in RETIRED_SKILLS:
             rep.err(os.path.join(FRAMEWORK, "skills", x), f"garden's {x} skill is {RETIRED_SKILLS[x]}: "
-                    "delete this folder (garden/docs/MIGRATING.md)")
+                    "this folder is left over (garden/docs/MIGRATING.md)")
         elif x not in FRAMEWORK_SKILLS:
             rep.err(os.path.join(FRAMEWORK, "skills", x),
                     f"not one of garden's skills: your own shared skills go in skills/{x}/")
@@ -210,11 +215,18 @@ def check_router(root, rep):
 
 
 def check_skill_dir(root, reld, rep):
-    """A garden/skills/<s>/, skills/<s>/ or seeds/<x>/skills/<s>/ folder: ENTRY.md, frontmatter, budgets. Returns True if it is a usable skill."""
+    """A garden/skills/<s>/, skills/<s>/ or seeds/<x>/skills/<s>/ folder: SKILL.md, frontmatter, budgets.
+    Returns True if it is a usable skill."""
     name = os.path.basename(reld)
-    entry = os.path.join(reld, "ENTRY.md")
+    entry = os.path.join(reld, "SKILL.md")
+    garden_own = reld.replace(os.sep, "/").startswith(FRAMEWORK + "/")
     if not NAME_RE.match(name) or len(name) > 64:
         rep.err(reld, "skill folder names are lowercase letters, digits and single hyphens")
+    if not garden_own and (name == FRAMEWORK or name.startswith(PREFIX)):
+        rep.err(reld, f"garden and {PREFIX}* are garden's own names: name your skill without them")
+    if os.path.exists(os.path.join(root, reld, "ENTRY.md")):
+        rep.err(os.path.join(reld, "ENTRY.md"), "a skill's file is SKILL.md since garden 3.0.0: rename it "
+                "(garden/docs/MIGRATING.md)")
     if not require(root, entry, rep):
         return False
     d, body = frontmatter(os.path.join(root, entry), rep, entry)
@@ -222,18 +234,25 @@ def check_skill_dir(root, reld, rep):
         return True
     if d.get("name") != name:
         rep.err(entry, f"name {d.get('name')!r} must equal the folder name {name!r}")
+    extra = set(d) - SKILL_KEYS
+    if extra:
+        (rep.err if garden_own else rep.warn)(
+            entry, f"keys outside the Agent Skills fields: {', '.join(sorted(map(str, extra)))}")
     meta = d.get("metadata") if isinstance(d.get("metadata"), dict) else {}
     vendored = "source" in meta
     if vendored and "commit" not in meta:
         rep.err(entry, "a vendored skill (metadata.source) needs metadata.commit")
     check_description(entry, d, rep, need_use_when=not vendored)
+    if garden_own and not str(d.get("description", "")).startswith(THROUGH_GARDEN):
+        rep.err(entry, f'a garden skill\'s description starts with "{THROUGH_GARDEN}": tools that list nested '
+                "skills (opencode) must see it is used through the router, not on its own")
     if words(body) > 800:
         rep.err(entry, f"body is {words(body)} words (budget 800)")
     for d2, _, names in os.walk(os.path.join(root, reld)):
         for n in names:
             p = os.path.join(d2, n)
             rel = os.path.relpath(p, root)
-            if n == "ENTRY.md" or os.path.splitext(n)[1] not in TEXT_EXT:
+            if n == "SKILL.md" or os.path.splitext(n)[1] not in TEXT_EXT:
                 continue
             with open(p, encoding="utf-8", errors="replace") as f:
                 lines = sum(1 for _ in f)
@@ -244,7 +263,7 @@ def check_skill_dir(root, reld, rep):
 
 def any_disable(root, files, rep):
     for rel in files:
-        if os.path.basename(rel) in ("SKILL.md", "ENTRY.md", "SEED.md"):
+        if os.path.basename(rel) in ("SKILL.md", "SEED.md"):
             text = read(os.path.join(root, rel))
             if text.startswith("---\n") and re.search(r"^disable-model-invocation\s*:", text.split("\n---\n", 1)[0], re.M):
                 rep.err(rel, "disable-model-invocation is never allowed")
@@ -292,7 +311,7 @@ def check_docs(root, reld, rep):
 
 
 # ---------------------------------------------------------------- memory
-# One table for the validator and garden/skills/memory/write.py (garden/docs/SPEC.md §6-7). A memory folder is the
+# One table for the validator and garden/skills/garden-memory/write.py (garden/docs/SPEC.md §6-7). A memory folder is the
 # root's memory/ or seeds/<name>/memory/:
 #   INDEX.md     one line per committed file: - [<file>](committed/<file>): read when <condition>.
 #   committed/   YYYY-MM-DD-<description>.md: memories the owner stated, or promoted after a 2nd sighting
@@ -359,7 +378,7 @@ def scan(text):
         m = re.search(pat, text, re.I | re.M)
         if m:
             return (f"instruction-like text ({m.group(0).strip()!r}): memory holds facts, not instructions; "
-                    "a rule goes to docs through a staged change (garden/skills/memory/stage.md), and untrusted "
+                    "a rule goes to docs through a staged change (garden/skills/garden-memory/stage.md), and untrusted "
                     "text stays out unless verified")
     return None
 
@@ -651,8 +670,8 @@ def load_seed(root, name, shared, rep):
         elif s in RETIRED_SKILLS and s not in shared and s not in bundled:
             rep.err(seed_md, f"{s} is {RETIRED_SKILLS[s]}: don't list it")
         elif s not in shared and s not in bundled:
-            rep.err(seed_md, f"skill {s} resolves to none of garden/skills/{s}/ENTRY.md, skills/{s}/ENTRY.md, "
-                    f"{reld}/skills/{s}/ENTRY.md")
+            rep.err(seed_md, f"skill {s} resolves to none of garden/skills/{s}/SKILL.md, skills/{s}/SKILL.md, "
+                    f"{reld}/skills/{s}/SKILL.md")
     names = req + opt
     if len(set(names)) != len(names):
         rep.err(seed_md, "a skill is listed twice")
@@ -660,19 +679,19 @@ def load_seed(root, name, shared, rep):
     if not isinstance(calls, list) or not all(isinstance(x, str) for x in calls):
         rep.err(seed_md, "calls is a list of seed names")
         calls = []
-    if calls and "handoff" not in names:
-        rep.err(seed_md, "calls needs handoff in skills")
+    if calls and "garden-handoff" not in names:
+        rep.err(seed_md, "calls needs garden-handoff in skills")
     if name in calls:
         rep.err(seed_md, "a seed can't call itself")
     access = d.get("access", "full")
     if access not in ACCESS:
         rep.err(seed_md, f"access {access!r}: one of read-only, edit, full")
-    has_esc = "escalate" in names
+    has_esc = "garden-escalate" in names
     autonomy = d.get("autonomy")
     if has_esc and autonomy is not None:
-        rep.err(seed_md, "autonomy is only set when escalate is not in skills")
+        rep.err(seed_md, "autonomy is only set when garden-escalate is not in skills")
     if not has_esc and autonomy not in AUTONOMY:
-        rep.err(seed_md, "without escalate, autonomy is decide-and-record or stop-and-record")
+        rep.err(seed_md, "without garden-escalate, autonomy is decide-and-record or stop-and-record")
     if words(body) > 500:
         rep.err(seed_md, f"body is {words(body)} words (budget 500)")
     wf = os.path.join(reld, "workflow.md")
@@ -775,9 +794,7 @@ def validate(root):
         if s not in shared:
             rep.err(f"garden/skills/{s}", "a mandatory shared skill is missing")
     for s in subdirs(os.path.join(root, "skills")):  # the owner's own shared skills
-        if s in FRAMEWORK_SKILLS:
-            continue  # reported by check_separation
-        if check_skill_dir(root, os.path.join("skills", s), rep):
+        if check_skill_dir(root, os.path.join("skills", s), rep) and not s.startswith(PREFIX):
             shared.add(s)
     any_disable(root, files, rep)
     check_docs(root, "docs", rep)

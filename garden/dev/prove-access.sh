@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Maintainer-only: proves what garden/skills/handoff/call.sh really enforces per tool and access level. No AI runs.
+# Maintainer-only: proves what garden/skills/garden-handoff/call.sh really enforces per tool and access level. No AI runs.
 # For each installed tool (claude, pi, omp, opencode) and each level (read-only, edit, full), in a temp HOME and
 # against garden/dev/fake-model.py, it runs call.sh three times. The fake model answers the first turn with one tool call:
 #   - "offered": a harmless turn; the request's tool list is compared with the level's allowlist;
@@ -34,7 +34,7 @@ sleep 1
 . "$ROOT/garden/dev/fake-providers.sh" "$MP"
 [ "$HOME" != "$real_home" ] || exit 1
 # call.sh runs from a garden copy, so the garden it lets the called seed read is $T/garden, outside each work dir
-mkdir -p "$T/garden/garden/skills/handoff" && cp "$ROOT/garden/skills/handoff/call.sh" "$T/garden/garden/skills/handoff/"
+mkdir -p "$T/garden/garden/skills/garden-handoff" && cp "$ROOT/garden/skills/garden-handoff/call.sh" "$T/garden/garden/skills/garden-handoff/"
 
 # The tools each level may offer (lower-cased). Anything else offered is a failure.
 allowed() { # <tool> <level>
@@ -77,7 +77,7 @@ run() { # <tool> <level> <probe>: runs call.sh in a fresh work dir; prints the w
   local before; before="$(ls "$T/req" | grep -c '^[0-9]*\.json$')"
   # shellcheck disable=SC2046
   (cd "$w" && ANTHROPIC_BASE_URL="http://127.0.0.1:$MP" ANTHROPIC_API_KEY=dummy \
-     timeout 180 bash "$T/garden/garden/skills/handoff/call.sh" "$tool" "$level" "$T/prompt.md" -- $(model_args "$tool") \
+     timeout 180 bash "$T/garden/garden/skills/garden-handoff/call.sh" "$tool" "$level" "$T/prompt.md" -- $(model_args "$tool") \
      > "$w.out" 2>&1)
   echo "$before" > "$w.before"
 }

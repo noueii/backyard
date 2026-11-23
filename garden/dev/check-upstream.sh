@@ -12,7 +12,7 @@ FROZEN='382384a0aafafc7895329eccc5beab12a786bbb136b34c7da99f3c3aea8294ed docs/IN
 a3a660efa9eebf365b79ced781475e76685407d7e2d744c262562543a30e5c1f seeds/INDEX.md
 ca891e96669a272521e4ddd828cb3ea116ac03a76eebad0883e5d279d462464b memory/INDEX.md
 737068817688e34cc2add2ebb7bbfcace800529e3c5f452feb65505677713c93 README.md
-ae5c9317d7916d8670412056458e6a488d686ffb767d4a1653a6c0a6b8164ef6 AGENTS.md
+bd4b3be73e6e81cf7eb0e182b7e77fa4a43d331cec4126bf0d27739a7be4ea53 AGENTS.md
 336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49 CLAUDE.md'
 while read -r sum path; do
   [ -f "$R/$path" ] || { fail "$path is missing"; continue; }

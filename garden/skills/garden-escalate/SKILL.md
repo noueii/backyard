@@ -1,6 +1,6 @@
 ---
-name: escalate
-description: "When and how a seed asks the owner, the fixed question block, and the format of a seed's final report. Use when a seed that lists escalate must ask or is finishing, and when the router asks about a routing tie or a new seed."
+name: garden-escalate
+description: "Part of the garden skill, used through its router and seeds, never on its own. When and how a seed asks the owner, the fixed question block, and the format of a seed's final report. Use when a seed that lists garden-escalate must ask or is finishing, and when the router asks about a routing tie or a new seed."
 metadata: { seeds-format: "2.0" }
 ---
 # escalate
@@ -20,7 +20,7 @@ Otherwise **decide**, and record the decision and its reason in the report (`## 
 ## How to ask: the fixed block
 Build it with the script, never by hand:
 ```sh
-bash garden/skills/escalate/block.sh --kind escalation --seed <name> \
+bash garden/skills/garden-escalate/block.sh --kind escalation --seed <name> \
   --question "<one question>" --why "<why docs and memory can't settle it>" \
   --option "<your recommendation>" --option "<another>"
 ```

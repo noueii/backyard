@@ -1,6 +1,6 @@
 # 0003: memory as files, and rsi merged into `memory` (2026-11-23)
 
-Status: **accepted** (the owner's decisions). Amends [0001](0001-seeds.md) §3 (memory format), §4 (rsi), §5.1-5.2 and §13. Release: garden **3.0.0**, `seeds-format` **2.0**.
+Status: **accepted** (the owner's decisions). Amends [0001](0001-seeds.md) §3 (memory format), §4 (rsi), §5.1-5.2 and §13. Release: garden **3.0.0**, `seeds-format` **2.0**. In the same release, [0004](0004-skill-md.md) renamed the skill to `garden-memory` and its `ENTRY.md` to `SKILL.md`; its paths are updated, and its prose keeps the names it was decided with.
 
 ## Decision
 ### 1. One file per memory
