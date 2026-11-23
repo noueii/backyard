@@ -22,24 +22,27 @@ mkdir -p ~/.agents/skills ~/.claude/skills
 ln -s ~/src/garden ~/.agents/skills/garden     # opencode, pi, omp
 ln -s ~/src/garden ~/.claude/skills/garden     # Claude Code
 ```
-**Update:** ask your tool to "sync the garden" (`skills/sync/`), or `git -C ~/src/garden pull --rebase`.
+**Update:** ask your tool to "sync the garden" (`garden/skills/sync/`), or `git -C ~/src/garden pull --rebase`.
 
 `npx skills add noueii/garden -g` also works, as a **read-only trial**: a copy without git, so memory and self-improvement save nothing.
 
-Then follow [the tutorial](guide/tutorial.md): your first seed, a second one that calls it, retros, and sync.
+Then follow [the tutorial](tutorial.md): your first seed, a second one that calls it, retros, and sync.
 
 ## What's inside
+Your garden's root holds your files and one file of garden's, the router. Everything else of garden's is in `garden/`, so the two never mix ([why](decisions/0002-framework-folder.md)).
+
 | | |
 |---|---|
-| `SKILL.md` | the router |
-| `skills/` | memory, rsi (mandatory); escalate, handoff, sync, new-seed (optional) |
-| `seeds/`, `docs/`, `MEMORY.md`, `memory/` | yours: empty here |
-| [`spec/SPEC.md`](spec/SPEC.md) | the seeds format |
-| `check/validate.py` | the structural validator (your CI runs it) |
-| [`guide/`](guide/tutorial.md) | the tutorial and a reference |
-| `dev/` | maintainer files: [decisions](dev/decisions/0001-seeds.md), fixtures, proofs |
+| `SKILL.md` | the router: the only skill your tools see |
+| `seeds/`, `docs/`, `skills/`, `MEMORY.md`, `memory/` | yours: your seeds, your rules, your own shared skills, your memory (empty here) |
+| `README.md`, `AGENTS.md`, `CLAUDE.md` | yours: short placeholders to change as you like |
+| `garden/skills/` | memory, rsi (mandatory); escalate, handoff, sync, new-seed (optional) |
+| `garden/docs/` | this README, [the tutorial](tutorial.md), [a reference](reference.md), [the spec](SPEC.md), [upgrade notes](MIGRATING.md), [decisions](decisions/README.md) |
+| `garden/check/` | the structural validator (your CI runs it) and an optional pre-commit script |
+| `garden/dev/` | maintainer files: fixtures, tests, proofs; inert in your copy |
+| `.github/workflows/garden.yml`, `.gitattributes` | garden's CI, and the union merge for memory files: they only work at the root |
 
-Tested with Claude Code 2.1.330, opencode 1.18.30, pi 0.80.2 and omp 18.11 (`dev/prove-install.sh`, `dev/prove-access.sh`, no AI involved).
+Tested with Claude Code 2.1.330, opencode 1.18.30, pi 0.80.2 and omp 18.11 (`garden/dev/prove-install.sh`, `garden/dev/prove-access.sh`, no AI involved).
 
 ## License
 **Undecided.** There is no LICENSE file yet, so no license is granted for now. The owner will choose one.

@@ -52,9 +52,9 @@ Then take it: with an `origin`, through its pull request (ask to "sync the garde
 The seed is `seeds/reviewer/SEED.md`: a short frontmatter and plain prose. Change it any time by asking for a change ("change the reviewer so it ..."): `new-seed` stages that too.
 
 ## 4. A second seed that calls the first
-Seeds compose: a seed can run another through `handoff`. Ask for a "task manager" seed that plans, implements, and then calls `reviewer`. `new-seed` writes its order in your words, in SEED.md or a free-form `workflow.md`; there's an example in `skills/new-seed/examples/task-manager/`.
+Seeds compose: a seed can run another through `handoff`. Ask for a "task manager" seed that plans, implements, and then calls `reviewer`. `new-seed` writes its order in your words, in SEED.md or a free-form `workflow.md`; there's an example in `garden/skills/new-seed/examples/task-manager/`.
 
-When the task manager calls the reviewer, handoff starts it as a fresh session of the same tool with **only read tools**, because the reviewer is `read-only`. Your tool enforces that (it never offers the reviewer a shell or a write tool), and a git snapshot checks afterwards that nothing changed. What each tool enforces is in `skills/handoff/access.md`.
+When the task manager calls the reviewer, handoff starts it as a fresh session of the same tool with **only read tools**, because the reviewer is `read-only`. Your tool enforces that (it never offers the reviewer a shell or a write tool), and a git snapshot checks afterwards that nothing changed. What each tool enforces is in `garden/skills/handoff/access.md`.
 
 ## 5. It improves itself
 Every run of a seed ends with `rsi`:
@@ -64,7 +64,7 @@ Every run of a seed ends with `rsi`:
 
 Every few runs, or when the same problem shows up twice, it runs a **retro**: it reads the run lines and your corrections and stages at most five changes, each with its evidence, on a local `garden/*` branch, and always proposes at least one removal. If you turn a proposal down, it goes to `memory/rejected.md`, and rsi won't propose it again without new evidence.
 
-Memory is committed **locally** at the end of each task, and never pushed by memory or rsi. Every memory write goes through `skills/memory/write.py`, which refuses secrets, invisible characters and instruction-like text, and fails when a file is full, so rsi compacts it first.
+Memory is committed **locally** at the end of each task, and never pushed by memory or rsi. Every memory write goes through `garden/skills/memory/write.py`, which refuses secrets, invisible characters and instruction-like text, and fails when a file is full, so rsi compacts it first.
 
 ## 6. Sync: push, pull, and update
 Nothing leaves your machine until you ask. Say "sync the garden" (or give a seed a line such as "sync at the end of every run"). `sync` shows what it will do, then:
@@ -76,19 +76,19 @@ Nothing leaves your machine until you ask. Say "sync the garden" (or give a seed
 
 It never merges a pull request: you do. You can run it yourself:
 ```sh
-bash ~/src/garden/skills/sync/sync.sh status
+bash ~/src/garden/garden/skills/sync/sync.sh status
 ```
 
 ## 7. Check it
 ```sh
-python3 ~/src/garden/check/validate.py ~/src/garden
+python3 ~/src/garden/garden/check/validate.py ~/src/garden
 ```
 Your garden's CI runs the same check on every push. To run it on every local commit too:
 ```sh
-ln -s ../../check/pre-commit.sh ~/src/garden/.git/hooks/pre-commit
+ln -s ../../garden/check/pre-commit.sh ~/src/garden/.git/hooks/pre-commit
 ```
 
 ## Where next
 - [The reference](reference.md): every file kind in a garden, in a line or two.
-- [The spec](../spec/SPEC.md): the exact format.
-- [The decision record](../dev/decisions/0001-seeds.md): why it is built this way.
+- [The spec](SPEC.md): the exact format.
+- [The decision record](decisions/0001-seeds.md): why it is built this way.

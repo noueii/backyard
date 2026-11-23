@@ -1,11 +1,16 @@
 # The seeds format 1.0
 
-This is the normative format of a garden: the repo whose root folder is the one skill your tools load. `check/validate.py` enforces what can be checked; the rest is how the shared skills behave. The reasons are in [dev/decisions/0001-seeds.md](../dev/decisions/0001-seeds.md).
+This is the normative format of a garden: the repo whose root folder is the one skill your tools load. `garden/check/validate.py` enforces what can be checked; the rest is how the shared skills behave. The reasons are in [decisions/0001-seeds.md](decisions/0001-seeds.md) and [decisions/0002-framework-folder.md](decisions/0002-framework-folder.md).
 
 ## 1. Layout
 ```
-SKILL.md                     the router: the ONLY file named SKILL.md, in any casing
-skills/<s>/ENTRY.md          shared internal skills (memory, rsi, escalate, handoff, sync, new-seed, your own)
+SKILL.md                     the router: the ONLY file named SKILL.md, in any casing, and garden's only file at the root
+garden/                      the framework, self-contained (garden/docs/upstream-paths.txt)
+  skills/<s>/ENTRY.md        garden's shared skills: memory, rsi, escalate, handoff, sync, new-seed
+  docs/                      garden's own docs: README, tutorial, reference, this spec, MIGRATING, decisions/
+  check/                     the validator and the optional pre-commit script
+  dev/                       maintainer files: tests, fixtures, proofs (inert in your copy)
+skills/<s>/ENTRY.md          your own shared skills (optional)
 docs/INDEX.md  docs/*.md     rules and reference for every seed (flat)
 MEMORY.md  memory/*.md       shared memory; memory/unrouted.md, memory/archive.md
 seeds/INDEX.md               one line per seed
@@ -14,10 +19,12 @@ seeds/<name>/workflow.md     optional, free-form
 seeds/<name>/skills/<s>/ENTRY.md   bundled skills
 seeds/<name>/docs/INDEX.md   the seed's docs (flat)
 seeds/<name>/MEMORY.md  seeds/<name>/memory/runs.md   the seed's memory
-spec/  check/  guide/  dev/  upstream files (spec/upstream-paths.txt)
+README.md  AGENTS.md  CLAUDE.md   yours: placeholders upstream ships once and never changes
+.github/workflows/garden.yml  .gitattributes   garden's, at the root only because they work only there
 ```
+- **The framework stays in `garden/`.** garden owns `SKILL.md`, `garden/` and the two root files above, nothing else. `garden/` holds only `skills/`, `docs/`, `check/` and `dev/`, and `garden/skills/` only garden's six skills: your content (seeds, docs, memory, your own skills) never goes inside `garden/`, and garden's never outside it. The validator checks both ways.
 - **Upper-case names are read by name** (`SKILL.md`, `ENTRY.md`, `SEED.md`, `MEMORY.md`, `INDEX.md`). Lower-case names are content.
-- **No `SKILL.md` below the root, in any casing.** opencode registers every nested one as another skill, and case-insensitive filesystems make `skill.md` the same file.
+- **No `SKILL.md` below the root, in any casing,** `garden/` included. opencode registers every nested one as another skill, and case-insensitive filesystems make `skill.md` the same file.
 - **No `.git`, worktree or clone below the root.** Stages live outside it (§8).
 - **Paths** in prose and commands are relative to the garden root, everywhere. One exception: inside a skill folder, a bare file name (no `/`) names the file beside it, which is how vendored skills already refer to their own files. Markdown links are relative to the file that holds them, as usual, and never leave the root.
 - **Names** (seeds, skills): lowercase letters, digits and single hyphens, at most 64 characters, equal to the folder name.
@@ -60,9 +67,9 @@ Done when: <...>.
 Never: <...>.
 ```
 - No other keys. The body is at most 500 words.
-- **Skill names:** a bare name is a shared skill (`skills/<s>/ENTRY.md`) or a bundled one (`seeds/<name>/skills/<s>/ENTRY.md`); a bundled name may not shadow a shared one. `installed:<s>` is a skill the tool discovers itself. `memory` and `rsi` are never listed.
+- **Skill names:** a bare name is a shared skill (garden's `garden/skills/<s>/ENTRY.md` or your own `skills/<s>/ENTRY.md`) or a bundled one (`seeds/<name>/skills/<s>/ENTRY.md`); neither of yours may shadow garden's, and a bundled name may not shadow a shared one. `installed:<s>` is a skill the tool discovers itself. `memory` and `rsi` are never listed.
 - **A missing required skill** stops the seed before it starts (escalate, or the autonomy fallback). A missing optional one is noted in the report (`skipped=`).
-- **`access`**: `read-only` = read and search only (no edit, no shell); `edit` = also edit and write files (no shell); `full` = everything. handoff enforces it when the seed is called (`skills/handoff/ENTRY.md`). At depth 0 it is an instruction the seed follows. A seed whose access is not `full` can't be passed to, only called.
+- **`access`**: `read-only` = read and search only (no edit, no shell); `edit` = also edit and write files (no shell); `full` = everything. handoff enforces it when the seed is called (`garden/skills/handoff/ENTRY.md`). At depth 0 it is an instruction the seed follows. A seed whose access is not `full` can't be passed to, only called.
 - **`workflow.md`** (optional, at most 800 words, free-form). SEED.md links it. Every `seed:<name>` it writes in backticks must exist and be in `calls`.
 
 ## 5. Indexes
@@ -86,7 +93,7 @@ Never: <...>.
 - A seed's doc with the same file name replaces the root one; on a clash in content the seed's text wins.
 
 ## 6. Memory
-Every memory write goes through `skills/memory/write.py`, which enforces this section and §7.
+Every memory write goes through `garden/skills/memory/write.py`, which enforces this section and §7.
 
 **`MEMORY.md`** (root and each seed), Orca's bot-memory format:
 ```md
@@ -130,7 +137,7 @@ rsi proposals the owner declined. rsi reads this before proposing again.
 **`memory/unrouted.md`** (root): a `# Unrouted` header, then `- <date> <time> | <slug> | one-off | <tags> | <why no seed fit>`.
 
 ## 7. Budgets
-Hard limits. The validator (in CI, and in the optional `check/pre-commit.sh`) fails any file over its budget. For memory files, **compaction is due at 80 %**, and **at 100 % a write fails** (write.py refuses it; nothing is truncated), so rsi compacts or removes first.
+Hard limits. The validator (in CI, and in the optional `garden/check/pre-commit.sh`) fails any file over its budget. For memory files, **compaction is due at 80 %**, and **at 100 % a write fails** (write.py refuses it; nothing is truncated), so rsi compacts or removes first.
 
 | What | Budget |
 |---|---|
@@ -147,7 +154,7 @@ Hard limits. The validator (in CI, and in the optional `check/pre-commit.sh`) fa
 
 ## 8. Git, tiers and the stage
 - **Memory paths:** `MEMORY.md`, `memory/**`, `seeds/*/MEMORY.md`, `seeds/*/memory/**`. Written directly in the live clone and committed locally (`memory: <task>`). Never staged, never pushed except by `sync`.
-- **Root tier:** the paths in `spec/upstream-paths.txt`. **Seeds tier:** everything else under `seeds/` and `docs/`. Behaviour changes are made only in a stage worktree, never in the live clone.
+- **Root tier:** the paths in `garden/docs/upstream-paths.txt`. **Seeds tier:** everything else that is not memory (`seeds/`, `docs/`, your `skills/`, your root files). Behaviour changes are made only in a stage worktree, never in the live clone.
 - **The stage:** `${XDG_STATE_HOME:-$HOME/.local/state}/garden/<repo>/stage/<YYYYMMDD-HHMM>-<task>-<tier>`, on branch `garden/<YYYYMMDD-HHMM>-<task>-<tier>`, outside the repo and every skills dir.
 - **Pushes and PRs** happen only in `sync`, which runs only when a seed's text says so or the owner asks. Nothing in a garden merges a PR.
 - `.gitattributes` sets `merge=union` on the line-based memory files (`MEMORY.md`, `lessons.md`, `runs.md`, `unrouted.md`, `rejected.md`, `archive.md`).
@@ -157,10 +164,10 @@ Hard limits. The validator (in CI, and in the optional `check/pre-commit.sh`) fa
 |---|---|
 | Session start | the router's name and description |
 | Any task | the router body, `docs/INDEX.md`, `seeds/INDEX.md` |
-| Hand over to seed X | `skills/memory/ENTRY.md`; root and X's MEMORY.md; X's `docs/INDEX.md`; X's SEED.md; X's required skills |
+| Hand over to seed X | `garden/skills/memory/ENTRY.md`; root and X's MEMORY.md; X's `docs/INDEX.md`; X's SEED.md; X's required skills |
 | During work | the docs and topic files whose "read when" fits; optional skills when used |
 | Called seed | the same, in a fresh sub-agent or session; the caller loads nothing of it |
-| End of a run | `skills/rsi/ENTRY.md`; `skills/sync/ENTRY.md` only where the seed's text says to sync |
+| End of a run | `garden/skills/rsi/ENTRY.md`; `garden/skills/sync/ENTRY.md` only where the seed's text says to sync |
 
 ## 10. Versions
-`metadata.version` follows semver and upstream tags releases `v<version>`. A new major of `seeds-format` ships a section in `spec/MIGRATING.md`.
+`metadata.version` follows semver and upstream tags releases `v<version>`. A new major of `seeds-format`, or of `version` (a change to garden's paths, such as 2.0.0's `garden/` folder), ships a section in `garden/docs/MIGRATING.md`.

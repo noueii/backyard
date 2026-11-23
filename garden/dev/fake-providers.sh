@@ -1,6 +1,6 @@
-# Maintainer-only, sourced by the proofs: points pi, omp and opencode at dev/fake-model.py (provider "fake",
+# Maintainer-only, sourced by the proofs: points pi, omp and opencode at garden/dev/fake-model.py (provider "fake",
 # model "fake-1") in the CURRENT (temp) HOME. Claude Code needs only ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY.
-# Usage: . dev/fake-providers.sh <port>
+# Usage: . garden/dev/fake-providers.sh <port>
 _mp="${1:?port}"
 case "$HOME" in /tmp/*|"${TMPDIR:-/tmp}"/*) ;; *) echo "fake-providers.sh: HOME is not a temp dir: $HOME" >&2; return 1 ;; esac
 mkdir -p "$HOME/.pi/agent" "$HOME/.omp/agent" "${XDG_CONFIG_HOME:-$HOME/.config}/opencode"

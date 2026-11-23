@@ -15,7 +15,7 @@ set -uo pipefail
 # here names its repo explicitly.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
 
-step="${1:-}"; R="${2:-$(cd "$(dirname "$0")/../.." && pwd -P)}"
+step="${1:-}"; R="${2:-$(cd "$(dirname "$0")/../../.." && pwd -P)}"
 case "$step" in pull|memory|staged|upstream|decisions|all|status) ;; *) sed -n '2,13p' "$0"; exit 2 ;; esac
 g() { git -C "$R" "$@"; }
 say() { echo "sync: $*"; }
@@ -40,7 +40,7 @@ need_clean_default() {
   local cur; cur="$(g branch --show-current)"
   [ "$cur" = "$DEF" ] || { say "on branch '$cur', not the default branch '$DEF': stopped"; return 1; }
   [ -z "$(g status --porcelain --untracked-files=no)" ] || {
-    say "uncommitted changes in the live clone; commit memory first (skills/memory/ENTRY.md): stopped"; g status --short | sed 's/^/  /'; return 1; }
+    say "uncommitted changes in the live clone; commit memory first (garden/skills/memory/ENTRY.md): stopped"; g status --short | sed 's/^/  /'; return 1; }
 }
 
 DEF=main; has_remote origin && DEF="$(default_branch)"
@@ -130,7 +130,7 @@ do_upstream() {
   [ -n "$tag" ] || { say "upstream: no v$major.* release yet"; return 0; }
   if g merge-base --is-ancestor "$tag" HEAD; then say "upstream: up to date with $tag"; return 0; fi
   local newer; newer="$(g tag -l 'v*' --sort=-v:refname | head -1)"
-  [ "$newer" != "$tag" ] && say "upstream: $newer is a new major: read its spec/MIGRATING.md before taking it"
+  [ "$newer" != "$tag" ] && say "upstream: $newer is a new major: read its garden/docs/MIGRATING.md before taking it"
   local b="garden/$(date +%Y%m%d-%H%M)-upstream-${tag//./-}-root"
   if g for-each-ref --format='%(refname)' 'refs/heads/garden/' | grep -q -- "-upstream-${tag//./-}-root$"; then
     say "upstream: $tag already has a branch: $(g for-each-ref --format='%(refname:short)' 'refs/heads/garden/' | grep -- "-upstream-${tag//./-}-root$")"; return 0
@@ -151,12 +151,12 @@ do_upstream() {
   if ! git -C "$T" merge -q --no-ff --no-edit "$tag" >/dev/null 2>&1; then
     say "upstream: the merge of $tag has conflicts, in the stage $T:"
     git -C "$T" diff --name-only --diff-filter=U | sed 's/^/  /'
-    say "resolve them (skills/sync/ENTRY.md), commit with the message in $msg, then run the staged step"
+    say "resolve them (garden/skills/sync/ENTRY.md), commit with the message in $msg, then run the staged step"
     return 3
   fi
   git -C "$T" commit -q --amend -F "$msg"; rm -f "$msg"
   if command -v python3 >/dev/null && python3 -c 'import yaml' 2>/dev/null; then
-    python3 "$T/check/validate.py" "$T" >/dev/null || {
+    python3 "$T/garden/check/validate.py" "$T" >/dev/null || {
       say "upstream: $tag merged in $T but the validator fails there: fix it before the staged step"; return 3; }
   fi
   g worktree remove "$T" && say "upstream: staged $tag on $b; the staged step opens its PR"
@@ -171,7 +171,7 @@ do_decisions() {
     [ -n "$u" ] || continue
     grep -qF "$u" "$R/memory/rejected.md" 2>/dev/null && continue
     [ "$DRY" = 1 ] && { say "decisions: would record $u"; continue; }
-    python3 "$R/skills/memory/write.py" add memory/rejected.md "- $(date +%Y-%m-%d) | ${t//|/-} ($u) | closed without merging" \
+    python3 "$R/garden/skills/memory/write.py" add memory/rejected.md "- $(date +%Y-%m-%d) | ${t//|/-} ($u) | closed without merging" \
       || return 1
     found=$((found + 1))
   done <<< "$lines"

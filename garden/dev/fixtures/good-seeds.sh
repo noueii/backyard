@@ -1,14 +1,14 @@
 # expect: ok
 # A small, valid garden: two seeds that compose (task-manager calls reviewer through handoff, with a workflow.md),
 # a bundled skill, a vendored skill, docs on both levels, memory, runs and unrouted lines. Other fixtures source
-# this file and then break one thing. Runs in a temp copy of the repo (dev/test-validate.sh).
+# this file and then break one thing. Runs in a temp copy of the repo (garden/dev/test-validate.sh).
 set -e
 stub() { # <dir> <name>: a shared skill, only if the repo doesn't have it yet
   [ -f "$1/ENTRY.md" ] && return 0
   mkdir -p "$1"
   printf -- '---\nname: %s\ndescription: "Stub for the fixture. Use when testing."\n---\nStub.\n' "$2" > "$1/ENTRY.md"
 }
-for s in memory rsi escalate handoff; do stub "skills/$s" "$s"; done
+for s in memory rsi escalate handoff; do stub "garden/skills/$s" "$s"; done
 
 mkdir -p seeds/reviewer/docs seeds/reviewer/memory seeds/task-manager/docs seeds/task-manager/memory \
   seeds/task-manager/skills/plan-format seeds/reviewer/skills/tdd memory docs

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Every memory write goes through this script: it scans the text, keeps the promotion gate, and fails loudly at
-a full budget (no truncation). Budgets and formats are check/validate.py's (spec/SPEC.md §6-7).
+a full budget (no truncation). Budgets and formats are garden/check/validate.py's (garden/docs/SPEC.md §6-7).
 
 Usage (paths relative to the garden root, or absolute inside it):
   write.py add <file> "<line>" [--top]          add a list line to a memory file (MEMORY.md: see the gate below)
@@ -19,12 +19,12 @@ import re
 import sys
 import unicodedata
 
-ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-sys.path.insert(0, os.path.join(ROOT, "check"))
+ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+sys.path.insert(0, os.path.join(ROOT, "garden", "check"))
 try:
     import validate as V  # noqa: E402  (the one table of formats and budgets)
 except ImportError as e:  # PyYAML missing: validate.py says so
-    sys.exit(f"write.py needs check/validate.py and PyYAML: {e}")
+    sys.exit(f"write.py needs garden/check/validate.py and PyYAML: {e}")
 
 # Text that is untrusted until verified (tool output, web pages, issue text, called-seed reports) must never
 # become memory as instructions, secrets or hidden characters.
@@ -100,7 +100,7 @@ def budget_gate(rel, kind, lines):
     max_lines = V.MEMORY_FILES[kind][2]
     if len(lines) > max_lines:
         fail(f"BUDGET FULL: {rel} would have {len(lines)} lines (budget {max_lines}). Nothing was written. "
-             "Compact or remove lines first (skills/rsi/retro.md, Compaction), then write again.")
+             "Compact or remove lines first (garden/skills/rsi/retro.md, Compaction), then write again.")
     if len(lines) >= V.COMPACT_AT * max_lines:
         print(f"write.py: compaction due: {rel} is at {len(lines)}/{max_lines} lines ({100 * len(lines) // max_lines} %)")
 

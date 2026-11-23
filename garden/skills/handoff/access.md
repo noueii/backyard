@@ -1,6 +1,6 @@
 # Access levels, per tool
 
-What `call.sh` really enforces, proven by `dev/prove-access.sh` (2026-11-23) against a scripted fake model: for each tool and level it compares the tools offered with the allowlist, then has the model call the write tool, the shell, and the read tool on a file outside the working directory, including tools that were not offered.
+What `call.sh` really enforces, proven by `garden/dev/prove-access.sh` (2026-11-23) against a scripted fake model: for each tool and level it compares the tools offered with the allowlist, then has the model call the write tool, the shell, and the read tool on a file outside the working directory, including tools that were not offered.
 
 `read-only`: read and search only. `edit`: also edit and write files. Neither has a shell, sub-agents, web or MCP tools. `full`: everything your settings allow.
 

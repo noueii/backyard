@@ -5,7 +5,7 @@ metadata: { seeds-format: "1.0" }
 ---
 # memory
 
-Paths are relative to the garden root. The format is in `spec/SPEC.md` §6.
+Paths are relative to the garden root. The format is in `garden/docs/SPEC.md` §6.
 
 ## Read (at hand-over)
 1. `MEMORY.md` (shared facts) and `seeds/<x>/MEMORY.md` (this seed's facts).
@@ -15,9 +15,9 @@ Paths are relative to the garden root. The format is in `spec/SPEC.md` §6.
 
 ## Write (as you go): always through write.py
 ```sh
-python3 skills/memory/write.py add <file> "<line>" [--top] [--owner | --lesson <lessons file>:<n>]
-python3 skills/memory/write.py seen <lessons file> <n> <run slug>
-echo "<prose>" | python3 skills/memory/write.py append <topic file>
+python3 garden/skills/memory/write.py add <file> "<line>" [--top] [--owner | --lesson <lessons file>:<n>]
+python3 garden/skills/memory/write.py seen <lessons file> <n> <run slug>
+echo "<prose>" | python3 garden/skills/memory/write.py append <topic file>
 ```
 It scans the text, keeps the promotion gate, and **fails loudly** when a file is at its budget: nothing is written or truncated. Never write around a refusal by editing the file by hand: say it in your report (and `refused=<n>` in the run line).
 
@@ -48,4 +48,4 @@ git -C "$R" diff --cached --quiet || git -C "$R" commit -q -m "memory: <task>"
 If `git -C <root> rev-parse` fails (a copy without git, such as `npx skills add`), or the files can't be written, nothing is saved: put every line under `## Memory (not saved)` in the report, and say once that this garden is a read-only trial.
 
 ## Budgets and compaction
-Budgets are in `spec/SPEC.md` §7. write.py notes "compaction due" from **80 %**; at **100 %** it refuses. Then compact before writing again (`skills/rsi/retro.md`, Compaction): merge duplicates, move details into topic files, move stale or low-value lines to `memory/archive.md` (`· moved YYYY-MM-DD`), keeping the most valuable lines first. Check a file you compacted by hand with `python3 skills/memory/write.py check <file>`. The validator, CI and the optional `check/pre-commit.sh` fail any file over its budget.
+Budgets are in `garden/docs/SPEC.md` §7. write.py notes "compaction due" from **80 %**; at **100 %** it refuses. Then compact before writing again (`garden/skills/rsi/retro.md`, Compaction): merge duplicates, move details into topic files, move stale or low-value lines to `memory/archive.md` (`· moved YYYY-MM-DD`), keeping the most valuable lines first. Check a file you compacted by hand with `python3 garden/skills/memory/write.py check <file>`. The validator, CI and the optional `garden/check/pre-commit.sh` fail any file over its budget.

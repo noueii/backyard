@@ -20,7 +20,7 @@ Otherwise **decide**, and record the decision and its reason in the report (`## 
 ## How to ask: the fixed block
 Build it with the script, never by hand:
 ```sh
-bash skills/escalate/block.sh --kind escalation --seed <name> \
+bash garden/skills/escalate/block.sh --kind escalation --seed <name> \
   --question "<one question>" --why "<why docs and memory can't settle it>" \
   --option "<your recommendation>" --option "<another>"
 ```

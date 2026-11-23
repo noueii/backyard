@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Structural checks for a garden (spec/SPEC.md, seeds format 1.0). Deterministic; no AI.
+"""Structural checks for a garden (garden/docs/SPEC.md, seeds format 1.0). Deterministic; no AI.
 
-Usage: python3 check/validate.py <garden root>
+Usage: python3 garden/check/validate.py <garden root>
 Prints one line per problem (ERROR or WARN), "needs installed: <skill>" for each installed: skill, and exits 1 on
 any ERROR. Needs python3 and PyYAML.
 """
@@ -21,6 +21,21 @@ SEED_KEYS = {"name", "when", "group", "skills", "calls", "access", "autonomy"}
 ACCESS = {"read-only", "edit", "full"}
 AUTONOMY = {"decide-and-record", "stop-and-record"}
 MANDATORY = ("memory", "rsi")
+# The framework lives in garden/ (garden/docs/decisions/0002-framework-folder.md). Its skills are exactly these;
+# the owner's own shared skills live in skills/ at the root.
+FRAMEWORK = "garden"
+FRAMEWORK_SKILLS = ("memory", "rsi", "escalate", "handoff", "sync", "new-seed")
+FRAMEWORK_DIRS = ("skills", "docs", "check", "dev")
+# Garden-owned paths outside garden/, each needed at the root (0002): the router, CI and the union merge.
+ROOT_OWNED = ("SKILL.md", "garden/", ".github/workflows/garden.yml", ".gitattributes")
+UPSTREAM_PATHS = "garden/docs/upstream-paths.txt"
+# Where the framework's files sat before 2.0.0: any of them at the root means a half-done move.
+OLD_LAYOUT = ("spec/SPEC.md", "spec/upstream-paths.txt", "spec/MIGRATING.md", "check/validate.py",
+              "check/pre-commit.sh", "guide/tutorial.md", "guide/reference.md", "dev/AGENTS.md",
+              "dev/check-upstream.sh", "dev/test-validate.sh", "dev/test-scripts.sh", "dev/decisions/README.md")
+# Names that only the owner's content uses: never inside garden/ (new-seed's examples excepted for SEED.md).
+USER_NAMES = ("MEMORY.md", "SEED.md", "INDEX.md")
+EXAMPLES = "garden/skills/new-seed/examples/"
 OUTCOMES = {"done", "escalated", "stopped", "decided", "passed", "failed"}
 MEMORY_INTRO = "One line per fact, most valuable first: tools may load only the start. Longer notes go in memory/<topic>.md."
 LESSONS_INTRO = "Not memory yet: a lesson moves to MEMORY.md once 2 runs saw it, or the owner states it."
@@ -130,6 +145,46 @@ def subdirs(path):
     return sorted(x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))) if os.path.isdir(path) else []
 
 
+# ---------------------------------------------------------------- separation of garden/ and the owner's content
+def check_separation(root, files, rep):
+    """The framework is SKILL.md, garden/ and ROOT_OWNED; the owner's content is never inside garden/."""
+    g = os.path.join(root, FRAMEWORK)
+    if not os.path.isdir(g):
+        rep.err(FRAMEWORK, "the framework folder garden/ is missing")
+    for rel in OLD_LAYOUT:
+        if os.path.exists(os.path.join(root, rel)):
+            rep.err(rel, "a garden-owned file outside garden/ (the old layout: garden/docs/MIGRATING.md)")
+    for s in FRAMEWORK_SKILLS:
+        if os.path.exists(os.path.join(root, "skills", s)):
+            rep.err(os.path.join("skills", s), f"{s} is garden's skill: it lives in garden/skills/{s}, "
+                    "and skills/ holds only your own (garden/docs/MIGRATING.md)")
+    for x in sorted(os.listdir(g)) if os.path.isdir(g) else []:
+        if x not in FRAMEWORK_DIRS:
+            rep.err(os.path.join(FRAMEWORK, x), f"garden/ holds only {', '.join(FRAMEWORK_DIRS)}: "
+                    "your own content goes outside garden/ (docs/, seeds/, skills/, memory/)")
+    for x in subdirs(os.path.join(g, "skills")):
+        if x not in FRAMEWORK_SKILLS:
+            rep.err(os.path.join(FRAMEWORK, "skills", x),
+                    f"not one of garden's skills: your own shared skills go in skills/{x}/")
+    for rel in files:
+        r = rel.replace(os.sep, "/")
+        if not r.startswith(FRAMEWORK + "/"):
+            continue
+        parts = r.split("/")
+        if "seeds" in parts[:-1] or (parts[-1] in USER_NAMES and not (parts[-1] == "SEED.md" and r.startswith(EXAMPLES))):
+            rep.err(rel, "your own content (seeds, docs indexes, memory) never goes inside garden/")
+    if not require(root, UPSTREAM_PATHS, rep):
+        return
+    listed = [x.strip() for x in read(os.path.join(root, UPSTREAM_PATHS)).splitlines()
+              if x.strip() and not x.startswith("#")]
+    for x in listed:
+        if x not in ROOT_OWNED:
+            rep.err(UPSTREAM_PATHS, f"{x}: garden owns only {', '.join(ROOT_OWNED)}")
+    for x in ("SKILL.md", "garden/"):
+        if x not in listed:
+            rep.err(UPSTREAM_PATHS, f"{x} is missing")
+
+
 # ---------------------------------------------------------------- router and skills
 def check_router(root, rep):
     if not os.path.isfile(os.path.join(root, "SKILL.md")):
@@ -155,7 +210,7 @@ def check_router(root, rep):
 
 
 def check_skill_dir(root, reld, rep):
-    """A skills/<s>/ folder: ENTRY.md, frontmatter, budgets. Returns True if it is a usable skill."""
+    """A garden/skills/<s>/, skills/<s>/ or seeds/<x>/skills/<s>/ folder: ENTRY.md, frontmatter, budgets. Returns True if it is a usable skill."""
     name = os.path.basename(reld)
     entry = os.path.join(reld, "ENTRY.md")
     if not NAME_RE.match(name) or len(name) > 64:
@@ -237,7 +292,7 @@ def check_docs(root, reld, rep):
 
 
 # ---------------------------------------------------------------- memory
-# One table for the validator and skills/memory/write.py. kind: (header, intro or None, max lines, max line length).
+# One table for the validator and garden/skills/memory/write.py. kind: (header, intro or None, max lines, max line length).
 # Compaction is due at 80 % of a budget; at 100 % write.py refuses the write and the validator fails the file.
 MEMORY_FILES = {
     "memory": ("# Memory", MEMORY_INTRO, 60, 400),
@@ -413,7 +468,8 @@ def load_seed(root, name, shared, rep):
         elif s in MANDATORY:
             rep.err(seed_md, f"{s} is mandatory and implicit: don't list it")
         elif s not in shared and s not in bundled:
-            rep.err(seed_md, f"skill {s} resolves to neither skills/{s}/ENTRY.md nor {reld}/skills/{s}/ENTRY.md")
+            rep.err(seed_md, f"skill {s} resolves to none of garden/skills/{s}/ENTRY.md, skills/{s}/ENTRY.md, "
+                    f"{reld}/skills/{s}/ENTRY.md")
     names = req + opt
     if len(set(names)) != len(names):
         rep.err(seed_md, "a skill is listed twice")
@@ -527,13 +583,19 @@ def validate(root):
     rep = Report()
     files = walk(root, rep)
     check_router(root, rep)
+    check_separation(root, files, rep)
     shared = set()
-    for s in subdirs(os.path.join(root, "skills")):
-        if check_skill_dir(root, os.path.join("skills", s), rep):
+    for s in subdirs(os.path.join(root, FRAMEWORK, "skills")):
+        if s in FRAMEWORK_SKILLS and check_skill_dir(root, os.path.join(FRAMEWORK, "skills", s), rep):
             shared.add(s)
     for s in MANDATORY:
         if s not in shared:
-            rep.err(f"skills/{s}", "a mandatory shared skill is missing")
+            rep.err(f"garden/skills/{s}", "a mandatory shared skill is missing")
+    for s in subdirs(os.path.join(root, "skills")):  # the owner's own shared skills
+        if s in FRAMEWORK_SKILLS:
+            continue  # reported by check_separation
+        if check_skill_dir(root, os.path.join("skills", s), rep):
+            shared.add(s)
     any_disable(root, files, rep)
     check_docs(root, "docs", rep)
     check_memory(root, "", rep)

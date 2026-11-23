@@ -20,7 +20,7 @@ prompt="$(cat "$prompt_file")"
 case "$access" in read-only|edit|full) ;; *) echo "call.sh: unknown access: $access" >&2; exit 2 ;; esac
 
 # The called seed reads its SEED.md, docs and memory from the garden, outside the directory it works in.
-G="$(cd "$(dirname "$0")/../.." && pwd -P)"
+G="$(cd "$(dirname "$0")/../../.." && pwd -P)"
 cmd=()
 envs=()
 case "$tool" in

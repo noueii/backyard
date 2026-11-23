@@ -2,19 +2,19 @@
 # Maintainer-only: the no-AI install proof. In a temp HOME, it installs this repo's HEAD the documented way (a git
 # clone over local smart HTTP, then the two symlinks) and checks, for each installed tool:
 #   - discovery: pi, omp and opencode list exactly one new skill, `garden` (no model session);
-#   - what reaches a model (dev/fake-model.py): `garden` and its description, and no internal skill (memory, rsi,
+#   - what reaches a model (garden/dev/fake-model.py): `garden` and its description, and no internal skill (memory, rsi,
 #     escalate, handoff, sync, new-seed), for Claude Code, pi, omp and opencode;
 #   - a seed, a bundled skill and a vendored ENTRY.md add nothing; a nested SKILL.md is ignored by Claude Code, pi
 #     and omp, and registered by opencode (why the spec bans it; the probe is removed again);
 #   - the optional global line reaches the request;
 #   - an update (a commit upstream, then git pull) reaches the next request.
 # The real HOME is never touched; no credentials, no network. Tools not installed are skipped with a note.
-# Usage: dev/prove-install.sh [--keep] [tool...]
+# Usage: garden/dev/prove-install.sh [--keep] [tool...]
 set -uo pipefail
 # Ignore a repo chosen by the caller's environment (git sets these in hooks and `rebase -x`): every git call
 # here names its repo explicitly.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
-ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd -P)"
 KEEP=0; [ "${1:-}" = --keep ] && { KEEP=1; shift; }
 TOOLS="${*:-claude pi omp opencode}"
 T="$(mktemp -d)"; GP=18765; MP=18766
@@ -34,10 +34,10 @@ for port in $GP $MP; do
 done
 git clone -q --bare "$ROOT" "$T/srv/noueii/garden.git"
 git -C "$T/srv/noueii/garden.git" config http.receivepack true   # anonymous push, localhost only (the update step)
-python3 "$ROOT/dev/git-http.py" "$T/srv" --port $GP & PIDS+=($!)
-python3 "$ROOT/dev/fake-model.py" "$T/req" --port $MP & PIDS+=($!)
+python3 "$ROOT/garden/dev/git-http.py" "$T/srv" --port $GP & PIDS+=($!)
+python3 "$ROOT/garden/dev/fake-model.py" "$T/req" --port $MP & PIDS+=($!)
 sleep 1
-. "$ROOT/dev/fake-providers.sh" "$MP" || exit 1
+. "$ROOT/garden/dev/fake-providers.sh" "$MP" || exit 1
 URL="http://127.0.0.1:$GP/noueii/garden.git"
 
 # What each tool discovers BEFORE the garden is installed: its built-in skills, if any.
@@ -54,7 +54,7 @@ echo "install: clone + two symlinks (the README's commands)"
 git clone -q "$URL" "$HOME/src/garden" && ln -s "$HOME/src/garden" "$HOME/.agents/skills/garden" \
   && ln -s "$HOME/src/garden" "$HOME/.claude/skills/garden" && pass "installed from $URL" || { fail "install"; exit 1; }
 G="$HOME/src/garden"
-python3 "$G/check/validate.py" "$G" >/dev/null && pass "the installed garden validates" || fail "the installed garden fails validate.py"
+python3 "$G/garden/check/validate.py" "$G" >/dev/null && pass "the installed garden validates" || fail "the installed garden fails validate.py"
 
 new_skills() { # <tool>: skills listed now that were not listed before the install
   comm -13 <(printf '%s\n' "${BASE[$1]}" | sort -u) <("${1}_skills" | sort -u) | grep -v '^$'
@@ -112,15 +112,15 @@ requests() { # <label> [text that must be in the request] [text that must not]
 requests "fresh install"
 
 echo "a seed, a bundled skill and a vendored skill add nothing"
-FIXTURES="$ROOT/dev/fixtures" bash -c "cd '$G' && . '$ROOT/dev/fixtures/good-seeds.sh'" && git -C "$G" add -A && git -C "$G" commit -qm "two seeds" \
-  && python3 "$G/check/validate.py" "$G" >/dev/null && pass "two seeds, a bundled and a vendored skill, valid" || fail "the seeds overlay"
+FIXTURES="$ROOT/garden/dev/fixtures" bash -c "cd '$G' && . '$ROOT/garden/dev/fixtures/good-seeds.sh'" && git -C "$G" add -A && git -C "$G" commit -qm "two seeds" \
+  && python3 "$G/garden/check/validate.py" "$G" >/dev/null && pass "two seeds, a bundled and a vendored skill, valid" || fail "the seeds overlay"
 discovery "with seeds"
 requests "with seeds" "" "Test-driven development, vendored."
 
 echo "a nested SKILL.md (forbidden by the spec): who registers it"
 mkdir -p "$G/seeds/reviewer/skills/nested-probe"
 printf -- '---\nname: nested-probe\ndescription: "Nested probe skill. Use when never."\n---\nx\n' > "$G/seeds/reviewer/skills/nested-probe/SKILL.md"
-out="$(python3 "$G/check/validate.py" "$G" 2>&1)"
+out="$(python3 "$G/garden/check/validate.py" "$G" 2>&1)"
 printf '%s' "$out" | grep -q "SKILL.md is only allowed at the root" && pass "the validator rejects it" || fail "the validator accepts it"
 for tool in $TOOLS; do
   command -v "$tool" >/dev/null || continue
