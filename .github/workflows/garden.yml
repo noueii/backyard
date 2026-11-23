@@ -17,3 +17,4 @@ jobs:
         run: |
           bash dev/check-upstream.sh
           bash dev/test-validate.sh
+          bash dev/test-scripts.sh

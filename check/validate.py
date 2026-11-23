@@ -475,6 +475,9 @@ def validate(root):
     for s in subdirs(os.path.join(root, "skills")):
         if check_skill_dir(root, os.path.join("skills", s), rep):
             shared.add(s)
+    for s in MANDATORY:
+        if s not in shared:
+            rep.err(f"skills/{s}", "a mandatory shared skill is missing")
     any_disable(root, files, rep)
     check_docs(root, "docs", rep)
     check_memory(root, "", rep, unrouted=True)
