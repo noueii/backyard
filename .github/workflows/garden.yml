@@ -1,0 +1,19 @@
+# Structural checks only: no AI, no secrets. Runs in noueii/garden and in every user's garden.
+name: garden
+on:
+  push:
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pyyaml
+      - name: validate the garden
+        run: python3 check/validate.py .
+      # The rest only runs in noueii/garden itself (a user's garden has its own seeds, docs and memory).
+      - name: maintainer checks (upstream only)
+        if: github.repository == 'noueii/garden'
+        run: |
+          bash dev/check-upstream.sh
+          bash dev/test-validate.sh
