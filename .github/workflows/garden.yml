@@ -10,11 +10,11 @@ jobs:
       - uses: actions/checkout@v4
       - run: pip install pyyaml
       - name: validate the garden
-        run: python3 check/validate.py .
+        run: python3 garden/check/validate.py .
       # The rest only runs in noueii/garden itself (a user's garden has its own seeds, docs and memory).
       - name: maintainer checks (upstream only)
         if: github.repository == 'noueii/garden'
         run: |
-          bash dev/check-upstream.sh
-          bash dev/test-validate.sh
-          bash dev/test-scripts.sh
+          bash garden/dev/check-upstream.sh
+          bash garden/dev/test-validate.sh
+          bash garden/dev/test-scripts.sh
