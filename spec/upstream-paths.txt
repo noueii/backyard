@@ -1,0 +1,14 @@
+# Paths noueii/garden owns: the root tier. sync brings their changes in as root PRs, and rsi stages changes to
+# them on root-tier branches. Everything else (docs/, MEMORY.md, memory/, seeds/) is yours. One path per line;
+# a trailing / means the whole folder.
+SKILL.md
+skills/
+spec/
+guide/
+check/
+dev/
+README.md
+AGENTS.md
+CLAUDE.md
+.github/workflows/garden.yml
+.gitattributes
