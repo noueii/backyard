@@ -31,7 +31,7 @@ Open the stage (`skills/rsi/stage.md` §2), then write, inside it:
 - `seeds/<name>/MEMORY.md` (`# Memory`, a blank line, the intro line from `spec/SPEC.md` §6, then the seed lines) and `seeds/<name>/memory/runs.md` (`# Runs`);
 - the line `- <name>: <when>` in `seeds/INDEX.md`, under its group heading if there are groups.
 
-Then finish the stage (`skills/rsi/stage.md` §3): validate, commit locally with the title `seeds(<name>): new seed` and a body listing the answers and their evidence (the owner's words, unrouted lines), remove the worktree, keep the branch. Tell the owner the branch name, and that the seed is live once the branch is merged: locally (`git merge <branch>`), or through its PR after `sync`. Never merge it yourself.
+Then finish the stage (`skills/rsi/stage.md` §3): validate, commit locally with the title `seeds(<name>): new seed` and a body listing the answers and their evidence (the owner's words, unrouted lines), remove the worktree, keep the branch. Tell the owner the branch name, and that the seed is live once the branch is merged: through its PR after `sync` (with an origin), or locally with `git merge <branch>` (without one). Never merge it yourself.
 
 ## Change a seed
 The same topics, only those that change, asked the same way. Build the change in a stage. Keep `seeds/INDEX.md` equal to SEED.md (`when`, `group`), and each docs INDEX equal to its folder, in the same commit. Title: `seeds(<name>): <summary>`.
