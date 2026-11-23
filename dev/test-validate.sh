@@ -5,6 +5,9 @@
 # the repo never stores a second SKILL.md.
 # Usage: dev/test-validate.sh [fixture-name...]
 set -uo pipefail
+# Ignore a repo chosen by the caller's environment (git sets these in hooks and `rebase -x`): every git call
+# here names its repo explicitly.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 export FIXTURES="$ROOT/dev/fixtures"

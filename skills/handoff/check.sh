@@ -9,6 +9,9 @@
 #              is a violation
 #   full:      nothing is a violation; the changes are listed
 set -euo pipefail
+# Ignore a repo chosen by the caller's environment (git sets these in hooks and `rebase -x`): every git call
+# here names its repo explicitly.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
 cmd="${1:?snapshot | verify}"; shift
 die() { echo "check.sh: $*" >&2; exit 2; }
 

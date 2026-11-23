@@ -7,6 +7,9 @@
 #   skills/sync/sync.sh: an upstream (noueii/garden), a user's origin and clones of it.
 # Usage: dev/test-scripts.sh
 set -uo pipefail
+# Ignore a repo chosen by the caller's environment (git sets these in hooks and `rebase -x`): every git call
+# here names its repo explicitly.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 export HOME="$T/home" XDG_STATE_HOME="$T/state" GARDEN_NO_GH=1 GIT_CONFIG_NOSYSTEM=1
@@ -150,6 +153,8 @@ git clone -q "$T/origin.git" "$T/g2"
 S="$T/g/skills/sync/sync.sh"; S2="$T/g2/skills/sync/sync.sh"
 
 expect "status on a fresh garden" 0 bash "$S" status
+has "pull: up to date"
+expect "an inherited GIT_DIR is ignored" 0 env GIT_DIR="$T/up.git" bash "$S" status
 has "pull: up to date"
 expect "a folder without git is refused" 1 bash "$S" status "$T"
 has "not a git clone"

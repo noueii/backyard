@@ -11,6 +11,9 @@
 # Exit: 0 done, 1 refused or failed (the reason is printed), 2 usage, 3 the upstream merge needs you (conflicts).
 # Never force-pushes, never merges a PR, never runs on its own. GARDEN_NO_GH=1 acts as if gh were missing.
 set -uo pipefail
+# Ignore a repo chosen by the caller's environment (git sets these in hooks and `rebase -x`): every git call
+# here names its repo explicitly.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
 
 step="${1:-}"; R="${2:-$(cd "$(dirname "$0")/../.." && pwd -P)}"
 case "$step" in pull|memory|staged|upstream|decisions|all|status) ;; *) sed -n '2,13p' "$0"; exit 2 ;; esac
