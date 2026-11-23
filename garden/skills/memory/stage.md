@@ -1,11 +1,13 @@
 # The stage
 
+Loaded at the end of a task, only when something was staged: an owner correction of how a seed behaves (staged at once, quoting the owner), a retro's changes (`garden/skills/memory/retro.md`), or new-seed's.
+
 Behaviour changes are never made in the live clone. They are made in a **stage**: a git worktree outside the repo and outside every skills folder (opencode scans dot folders and would find a second `SKILL.md` inside the repo).
 
 ## 1. Which tier
 - **root:** a path listed in `garden/docs/upstream-paths.txt` (`SKILL.md`, `garden/`, ...). These are upstream's files; a change to them may also be worth proposing upstream.
 - **seeds:** everything else that is not memory: `seeds/`, `docs/`, your own `skills/`, your root files.
-- **neither:** memory paths (`MEMORY.md`, `memory/`, `seeds/*/MEMORY.md`, `seeds/*/memory/`) are written directly, never staged.
+- **neither:** memory paths (`memory/`, `seeds/*/memory/`) are written directly, never staged.
 
 One task gets at most one stage per tier, so the two tiers become separate PRs.
 
@@ -25,7 +27,7 @@ git -C "$R" worktree add -q "$T" -b "$B"
 2. **Commit locally**, with the future PR's title and body as the message (sync opens the PR with `gh pr create --fill`):
    - **Title:** `seeds(<seed>[,<seed>]): <summary>`, or `root: <summary>`.
    - **Body:**
-     - `## Evidence`: the quoted run and unrouted lines, and owner quotes;
+     - `## Evidence`: the memory files (by name, with the tasks in their `seen`) and owner quotes;
      - `## Changes`: per finding, its category, what changed and its evidence;
      - `## Removed`: what was deleted or compacted;
      - `## Budgets`: before → after word counts of everything always loaded;

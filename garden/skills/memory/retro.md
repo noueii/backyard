@@ -1,34 +1,47 @@
 # The retro
 
-Adapted from mattpocock's `retro`. Read first: this seed's `runs.md` since the last retro, `memory/unrouted.md`, `memory/rejected.md` (never re-propose a line there without new evidence), the lessons files, the conversation's escalations and owner corrections, the root and seed MEMORY.md, and the sizes of everything always loaded (the router, `docs/INDEX.md`, `seeds/INDEX.md`, both MEMORY.md, this SEED.md). Read the existing docs before proposing a rule, so a finding is "the existing rule is unclear" rather than a duplicate.
+Loaded at the end of a depth-0 task, only when a retro is due (`garden/skills/memory/ENTRY.md`, "End of the task"): a pending memory was seen again, a memory budget passed 80 %, or the owner asked. Adapted from mattpocock's `retro`.
 
-Each finding names its **evidence** (quoted run lines, unrouted lines, or an owner quote) and its **category**:
+## Read first
+- Both memory folders (`memory/` and `seeds/<x>/memory/`): INDEX.md, the committed files, and every pending file.
+- `memory/rejected.md`: never re-propose a line there without new evidence.
+- This task's owner corrections, escalations and failures.
+- What changed since the last retro: `git log --format='%h %cs %s' --since=<date of the last "memory: retro" commit> -- seeds/<x> memory` (find it with `git log -1 --format=%cs --grep='^memory: retro'`).
+- The sizes of everything always loaded: the router, `docs/INDEX.md`, `seeds/INDEX.md`, both memory INDEX.md, this SEED.md (`python3 garden/skills/memory/write.py check <memory folder>` for memory).
+- The existing docs, before proposing a rule, so a finding is "the existing rule is unclear" rather than a duplicate.
 
-## Categories
-- **Navigation:** files or facts the seed hunted for. Fix: a doc plus an INDEX line, or a memory pointer.
+## 1. Promotion
+For each pending memory seen by 2 tasks (`seen` has two entries):
+- **A fact, decision, preference or lesson** that still holds (check it if you can): `python3 garden/skills/memory/write.py promote <pending file> --when "<condition>"` (`--top` if it matters more than what is there). It moves to `committed/` and gets its INDEX line.
+- **Really a rule** ("run X before Y", "never Z"): don't promote it. Stage it as a doc line (`garden/skills/memory/stage.md`), citing the pending file and its two tasks, then `remove` the pending file.
+- **No longer true:** `remove` it.
+
+## 2. Findings
+Each names its **evidence** (memory files by name with their `seen` tasks, or an owner quote) and its **category**:
+- **Navigation:** files or facts the seed hunted for. Fix: a doc plus an INDEX line, or a committed memory.
 - **Automated checks:** a mistake a script could catch. Propose the check for the *project* repo in the report; seeds don't own project CI.
 - **Standards:** a mechanical rule becomes a check (proposed as above); a judgement rule becomes a doc line.
-- **Always-loaded text:** the router, the INDEX files, MEMORY.md and SEED.md against their budgets. Look for no-ops (lines that change no behaviour) and delete them.
+- **Always-loaded text:** the router, the INDEX files and SEED.md against their budgets. Look for no-ops (lines that change no behaviour) and delete them.
 - **Tool economy:** expensive or repeated calls, and how to avoid them.
 - **Information access:** something the seed needed and could not get.
 - **Routing:** a wrong seed picked (the owner redirected), or `when` lines too vague or overlapping.
-- **Calls:** call chains that looped, failed or were always skipped; access violations (`viol`), and whether the called seed's `access` is right.
+- **Calls:** call chains that looped or failed; access violations, and whether the called seed's `access` is right.
 - **Autonomy:** escalations that should have been decisions, and decisions the owner reversed.
-- **Memory hygiene:** stale, duplicated or contradicted facts, and rules hiding in memory (they move to docs).
-- **Sprawl:** repeated `unrouted.md` lines become a **new seed proposal**, handed to `garden/skills/new-seed/ENTRY.md`, which asks the owner. Seeds unused for 30 runs of their siblings, or 60 days, are proposed for retirement; overlapping seeds for merging. Past 50 seeds, propose merges rather than more groups.
+- **Memory hygiene:** stale, duplicated or contradicted memories (remove the loser), and rules hiding in memory (staged as docs, then removed).
+- **Sprawl:** a pending memory about a task no seed fits, seen twice, becomes a **new seed proposal**, handed to `garden/skills/new-seed/ENTRY.md`, which asks the owner. A seed whose folder has no commit in 60 days (`git log -1 --format=%cs -- seeds/<x>`) while others had some is proposed for retirement; overlapping seeds for merging. Past 50 seeds, propose merges rather than more groups.
 - **Upstream:** if the garden has an `upstream` remote, say once in the report that `bash garden/skills/sync/sync.sh status` shows whether a garden release is waiting. Never run sync from here.
-- **Lessons:** a lesson seen in 2 runs is promoted (`garden/skills/memory/ENTRY.md`); one not seen again since the last two retros is dropped. A lesson that is really a rule becomes a doc change, staged.
-- **rsi itself:** how the last retro branches fared (`memory/rejected.md`). Repeated rejections are a finding about rsi, which may propose a root-tier change to `garden/skills/rsi/`.
+- **The retro itself:** how the last retro branches fared (`memory/rejected.md`). Repeated rejections are a finding about memory, which may propose a root-tier change to `garden/skills/memory/`.
 
-## Removal pass (mandatory)
-Every retro proposes at least one deletion or compaction, or states, with the measured sizes, that everything is under 80 % of its budget.
+## 3. Removal pass (mandatory)
+Every retro removes or compacts at least one thing, or states, with the measured sizes, that everything is under 80 % of its budget.
 
-## Compaction
-- **Memory files** at 80 % of their budget or more (write.py says "compaction due"; at 100 % it refuses writes): merge duplicates, move details into topic files, move stale or low-value lines to `memory/archive.md` (`~~old line~~ · moved YYYY-MM-DD`), and reorder MEMORY.md most valuable first. Written directly: it is memory. Check with `python3 garden/skills/memory/write.py check <file>`.
-- **runs.md and unrouted.md:** keep the lines since the last two retro lines; delete older ones (git history keeps them, and the retro lines summarise them). **archive.md** and **rejected.md** at 80 %: delete their oldest lines. Written directly.
+## 4. Compaction
+- **Memory folders** at 80 % of a budget or more (at 100 % writes fail): remove stale, duplicated or low-value memories with `python3 garden/skills/memory/write.py remove <file>` (there is no archive: git history keeps them), and reorder INDEX.md most valuable first. A file too long for its budget is rewritten shorter by hand. Pending memories seen once and older than 60 days are removed. Check each folder with `write.py check <memory folder>`.
+- **`memory/rejected.md`** at 80 %: delete its oldest lines by hand.
 - **Docs and SEED.md:** compaction is a behaviour change: stage it.
 
-## Output
-1. Memory changes: write them now.
-2. Behaviour changes (at most 5): stage them (`garden/skills/rsi/stage.md`), seeds tier and root tier separately.
-3. In the report, `## Retro`: each finding with its category, evidence and what you did (staged, memory, proposed for the project, or dropped and why).
+## 5. Output
+1. Memory changes: make them now, through write.py (or by hand for compaction, then `check`).
+2. Behaviour changes (at most 5 per branch): stage them (`garden/skills/memory/stage.md`), seeds tier and root tier separately.
+3. Commit memory with the message `memory: retro <seed>`, so the next retro finds this one.
+4. In the report, `## Retro`: each finding with its category, evidence and what you did (staged, memory, proposed for the project, or dropped and why).

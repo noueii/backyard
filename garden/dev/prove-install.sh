@@ -2,7 +2,7 @@
 # Maintainer-only: the no-AI install proof. In a temp HOME, it installs this repo's HEAD the documented way (a git
 # clone over local smart HTTP, then the two symlinks) and checks, for each installed tool:
 #   - discovery: pi, omp and opencode list exactly one new skill, `garden` (no model session);
-#   - what reaches a model (garden/dev/fake-model.py): `garden` and its description, and no internal skill (memory, rsi,
+#   - what reaches a model (garden/dev/fake-model.py): `garden` and its description, and no internal skill (memory,
 #     escalate, handoff, sync, new-seed), for Claude Code, pi, omp and opencode;
 #   - a seed, a bundled skill and a vendored ENTRY.md add nothing; a nested SKILL.md is ignored by Claude Code, pi
 #     and omp, and registered by opencode (why the spec bans it; the probe is removed again);
@@ -101,7 +101,7 @@ requests() { # <label> [text that must be in the request] [text that must not]
     while IFS= read -r pair; do
       [ -n "$pair" ] || continue
       grep -qF -- "${pair#*:}" "$req" && leak="$leak ${pair%%:*}"
-    done <<< "$(printf '%s\n' "memory:Reads and writes the garden's shared" "rsi:Recursive self-improvement: records each run" \
+    done <<< "$(printf '%s\n' "memory:Reads and writes the garden's shared" \
       "escalate:When and how a seed asks the owner" "handoff:Runs another seed: calls it" \
       "sync:Syncs the garden with origin and upstream" "new-seed:Builds, changes or retires a seed")"
     [ -z "$leak" ] && pass "$tool: no internal skill is offered ($label)" || fail "$tool: internal skills offered:$leak ($label)"

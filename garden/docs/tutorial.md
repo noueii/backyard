@@ -56,15 +56,21 @@ Seeds compose: a seed can run another through `handoff`. Ask for a "task manager
 
 When the task manager calls the reviewer, handoff starts it as a fresh session of the same tool with **only read tools**, because the reviewer is `read-only`. Your tool enforces that (it never offers the reviewer a shell or a write tool), and a git snapshot checks afterwards that nothing changed. What each tool enforces is in `garden/skills/handoff/access.md`.
 
-## 5. It improves itself
-Every run of a seed ends with `rsi`:
-- one line in `seeds/<name>/memory/runs.md`;
-- new lessons in `memory/lessons.md`, which become memory (`MEMORY.md`) once two runs saw them, or straight away when you state a fact yourself;
-- your corrections ("never do X") staged at once as a change to the seed's docs.
+## 5. It remembers, and improves itself
+A seed writes memory only when something is worth it: you correct it or tell it a fact, something fails, or something surprises it. A routine run writes nothing. Each memory is one small file in `memory/` (shared) or `seeds/<name>/memory/`:
+```
+memory/
+  INDEX.md      one line per committed memory: what it is, and when to read it
+  committed/    2026-11-23-api-tests-need-make-db.md   what you said, or what two tasks saw
+  pending/      2026-11-24-reviewer-slow-on-big-diffs.md   seen once, waiting for a second sighting
+```
+What you state goes straight to `committed/`. Anything else waits in `pending/` until a second task sees it. Seeds read `INDEX.md` at the start, and a memory only when its line fits the task.
 
-Every few runs, or when the same problem shows up twice, it runs a **retro**: it reads the run lines and your corrections and stages at most five changes, each with its evidence, on a local `garden/*` branch, and always proposes at least one removal. If you turn a proposal down, it goes to `memory/rejected.md`, and rsi won't propose it again without new evidence.
+A rule is never memory: your correction of how a seed behaves ("never do X") is staged at once as a change to its docs, on a local `garden/*` branch, for you to review.
 
-Memory is committed **locally** at the end of each task, and never pushed by memory or rsi. Every memory write goes through `garden/skills/memory/write.py`, which refuses secrets, invisible characters and instruction-like text, and fails when a file is full, so rsi compacts it first.
+When a pending memory is seen again, or memory nears its budget, or you ask, the seed runs a **retro**: it promotes what two tasks saw, removes what is stale, and stages at most five changes to docs and seeds, each with its evidence, always proposing at least one removal. If you turn a proposal down, it goes to `memory/rejected.md`, and won't be proposed again without new evidence.
+
+Memory is committed **locally** at the end of each task, and never pushed except by `sync`. Every memory write goes through `garden/skills/memory/write.py`, which refuses secrets, invisible characters and instruction-like text, and fails when memory is full, so the retro compacts it first; the validator checks the same on every commit.
 
 ## 6. Sync: push, pull, and update
 Nothing leaves your machine until you ask. Say "sync the garden" (or give a seed a line such as "sync at the end of every run"). `sync` shows what it will do, then:

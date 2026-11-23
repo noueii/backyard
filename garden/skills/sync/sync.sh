@@ -24,7 +24,7 @@ R="$(g rev-parse --show-toplevel)"
 has_gh() { [ "${GARDEN_NO_GH:-}" != 1 ] && command -v gh >/dev/null && (cd "$R" && gh auth status >/dev/null 2>&1); }
 has_remote() { g remote get-url "$1" >/dev/null 2>&1; }
 
-is_memory_path() { case "$1" in MEMORY.md|memory/*|seeds/*/MEMORY.md|seeds/*/memory/*) return 0 ;; *) return 1 ;; esac; }
+is_memory_path() { case "$1" in memory/*|seeds/*/memory/*) return 0 ;; *) return 1 ;; esac; }
 non_memory() { # <range>: files outside memory paths touched by the commits in range
   local f
   g log --format= --name-only "$1" | sort -u | while IFS= read -r f; do
@@ -171,7 +171,7 @@ do_decisions() {
     [ -n "$u" ] || continue
     grep -qF "$u" "$R/memory/rejected.md" 2>/dev/null && continue
     [ "$DRY" = 1 ] && { say "decisions: would record $u"; continue; }
-    python3 "$R/garden/skills/memory/write.py" add memory/rejected.md "- $(date +%Y-%m-%d) | ${t//|/-} ($u) | closed without merging" \
+    python3 "$R/garden/skills/memory/write.py" reject "- $(date +%Y-%m-%d) | ${t//|/-} ($u) | closed without merging" \
       || return 1
     found=$((found + 1))
   done <<< "$lines"

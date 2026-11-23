@@ -10,8 +10,7 @@ R="${1:-$(cd "$(dirname "$0")/../.." && pwd -P)}"
 fails=0; fail() { echo "  FAIL $*"; fails=$((fails + 1)); }
 FROZEN='382384a0aafafc7895329eccc5beab12a786bbb136b34c7da99f3c3aea8294ed docs/INDEX.md
 a3a660efa9eebf365b79ced781475e76685407d7e2d744c262562543a30e5c1f seeds/INDEX.md
-fbca4e13b6de9734f4a607c56cea87ec3f440ef2ff6c11371186e3ed1011b3ac MEMORY.md
-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 memory/.gitkeep
+ca891e96669a272521e4ddd828cb3ea116ac03a76eebad0883e5d279d462464b memory/INDEX.md
 737068817688e34cc2add2ebb7bbfcace800529e3c5f452feb65505677713c93 README.md
 ae5c9317d7916d8670412056458e6a488d686ffb767d4a1653a6c0a6b8164ef6 AGENTS.md
 336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49 CLAUDE.md'

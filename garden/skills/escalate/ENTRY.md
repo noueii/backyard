@@ -1,7 +1,7 @@
 ---
 name: escalate
 description: "When and how a seed asks the owner, the fixed question block, and the format of a seed's final report. Use when a seed that lists escalate must ask or is finishing, and when the router asks about a routing tie or a new seed."
-metadata: { seeds-format: "1.0" }
+metadata: { seeds-format: "2.0" }
 ---
 # escalate
 
@@ -39,13 +39,13 @@ End every run of a seed that uses escalate with these sections, leaving out empt
 - `## Escalated`: what you asked and the answer, or the open block.
 - `## Open`: what is left, and who has it.
 - `## Memory`: lines written (or `## Memory (not saved)`: lines to write, each with its file).
-- `## Staged`: local `garden/*` branches from rsi, and whether sync opened PRs for them.
+- `## Staged`: local `garden/*` branches staged by memory or new-seed, and whether sync opened PRs for them.
 
 A **handover note** (handoff's pass) uses the same sections plus `## State` (repo, branch, worktree, last commit) and `## Next` (the first step for whoever continues).
 
 ## Seeds without escalate
 They never ask mid-task. Their `autonomy` decides what happens when one of the "when to ask" cases comes up:
-- **`decide-and-record`:** take the safest **reversible** option, record it in the report, in the run line (outcome `decided`) and in memory, and go on. Irreversible or outward actions are never decided: they stop as below.
-- **`stop-and-record`:** stop, leave the work on a branch or worktree, record what blocks it (report, run line outcome `stopped`, memory), and end.
+- **`decide-and-record`:** take the safest **reversible** option, record it in the report and, if it will matter again, as a pending memory (type `decision`), and go on. Irreversible or outward actions are never decided: they stop as below.
+- **`stop-and-record`:** stop, leave the work on a branch or worktree, record what blocks it in the report (and as a pending memory if the next run should know), and end.
 
 The router may always ask about a routing tie or a new-seed offer with this block: routing happens before any seed runs.

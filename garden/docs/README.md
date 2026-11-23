@@ -6,8 +6,8 @@ A **seed** is a bot with one purpose: a reviewer, a planner, a task manager that
 
 - **One skill per tool.** Shared skills inside are `ENTRY.md` files that no tool discovers, so nothing collides with your other skills.
 - **Seeds compose.** No roles and no workflow engine: a seed that runs others says so in your own words.
-- **Memory stays local.** Facts are committed to your clone and pushed only when you ask (`sync`). Every write goes through a gate that refuses secrets, hidden characters and instruction-like text, and only promotes a lesson once two runs saw it, or you stated it.
-- **Self-improvement by branch.** After runs and retros, `rsi` stages evidence-backed changes on local branches; `sync` opens them as pull requests. Nothing is ever merged for you.
+- **Memory stays local, and small.** One file per memory, written only when something is worth remembering (your correction, a failure, a surprise), committed to your clone and pushed only when you ask (`sync`). A gate refuses secrets, hidden characters and instruction-like text, and a lesson becomes memory only once two tasks saw it, or you stated it.
+- **Self-improvement by branch.** Rules are never memory: your corrections and retros become changes to docs and seeds, staged on local branches; `sync` opens them as pull requests. Nothing is ever merged for you.
 - **Access levels.** `access: read-only | edit | full` on a seed; when another seed calls it, your tool enforces it.
 - **No runtime.** No plugins, CLI, hooks or AI evals: Markdown, a few small scripts, and a structural validator.
 
@@ -34,9 +34,9 @@ Your garden's root holds your files and one file of garden's, the router. Everyt
 | | |
 |---|---|
 | `SKILL.md` | the router: the only skill your tools see |
-| `seeds/`, `docs/`, `skills/`, `MEMORY.md`, `memory/` | yours: your seeds, your rules, your own shared skills, your memory (empty here) |
+| `seeds/`, `docs/`, `skills/`, `memory/` | yours: your seeds, your rules, your own shared skills, your memory (empty here) |
 | `README.md`, `AGENTS.md`, `CLAUDE.md` | yours: short placeholders to change as you like |
-| `garden/skills/` | memory, rsi (mandatory); escalate, handoff, sync, new-seed (optional) |
+| `garden/skills/` | memory (mandatory); escalate, handoff, sync, new-seed (optional) |
 | `garden/docs/` | this README, [the tutorial](tutorial.md), [a reference](reference.md), [the spec](SPEC.md), [upgrade notes](MIGRATING.md), [decisions](decisions/README.md) |
 | `garden/check/` | the structural validator (your CI runs it) and an optional pre-commit script |
 | `garden/dev/` | maintainer files: fixtures, tests, proofs; inert in your copy |

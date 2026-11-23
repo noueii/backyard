@@ -1,30 +1,34 @@
 #!/usr/bin/env python3
-"""Structural checks for a garden (garden/docs/SPEC.md, seeds format 1.0). Deterministic; no AI.
+"""Structural checks for a garden (garden/docs/SPEC.md, seeds format 2.0). Deterministic; no AI.
 
 Usage: python3 garden/check/validate.py <garden root>
 Prints one line per problem (ERROR or WARN), "needs installed: <skill>" for each installed: skill, and exits 1 on
 any ERROR. Needs python3 and PyYAML.
 """
+import datetime
 import os
 import re
 import sys
+import unicodedata
 
 try:
     import yaml
 except ImportError:
     sys.exit("validate.py needs PyYAML: pip install pyyaml")
 
-FORMAT_MAJOR = 1
+FORMAT_MAJOR = 2
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 SKILL_KEYS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
 SEED_KEYS = {"name", "when", "group", "skills", "calls", "access", "autonomy"}
 ACCESS = {"read-only", "edit", "full"}
 AUTONOMY = {"decide-and-record", "stop-and-record"}
-MANDATORY = ("memory", "rsi")
+MANDATORY = ("memory",)
 # The framework lives in garden/ (garden/docs/decisions/0002-framework-folder.md). Its skills are exactly these;
 # the owner's own shared skills live in skills/ at the root.
 FRAMEWORK = "garden"
-FRAMEWORK_SKILLS = ("memory", "rsi", "escalate", "handoff", "sync", "new-seed")
+FRAMEWORK_SKILLS = ("memory", "escalate", "handoff", "sync", "new-seed")
+# Skills garden no longer ships, and where they went (garden/docs/MIGRATING.md).
+RETIRED_SKILLS = {"rsi": "merged into memory (seeds-format 2.0)"}
 FRAMEWORK_DIRS = ("skills", "docs", "check", "dev")
 # Garden-owned paths outside garden/, each needed at the root (0002): the router, CI and the union merge.
 ROOT_OWNED = ("SKILL.md", "garden/", ".github/workflows/garden.yml", ".gitattributes")
@@ -36,17 +40,10 @@ OLD_LAYOUT = ("spec/SPEC.md", "spec/upstream-paths.txt", "spec/MIGRATING.md", "c
 # Names that only the owner's content uses: never inside garden/ (new-seed's examples excepted for SEED.md).
 USER_NAMES = ("MEMORY.md", "SEED.md", "INDEX.md")
 EXAMPLES = "garden/skills/new-seed/examples/"
-OUTCOMES = {"done", "escalated", "stopped", "decided", "passed", "failed"}
-MEMORY_INTRO = "One line per fact, most valuable first: tools may load only the start. Longer notes go in memory/<topic>.md."
-LESSONS_INTRO = "Not memory yet: a lesson moves to MEMORY.md once 2 runs saw it, or the owner states it."
-REJECTED_INTRO = "rsi proposals the owner declined. rsi reads this before proposing again."
-LESSON_SEEN = re.compile(r" · seen: [a-z0-9-]+(, [a-z0-9-]+)*$")
+REJECTED_INTRO = "Proposals the owner declined. Read before proposing a change; never re-propose one without new evidence."
 REJECTED_LINE = re.compile(r"^- \d{4}-\d{2}-\d{2} \| [^|]+ \| [^|]+$")
-MEMORY_LINE = re.compile(r"^- \d{4}-\d{2}-\d{2} \S.*$")
 DOC_LINE = re.compile(r"^- \[([^\]/]+\.md)\]\(([^)]+)\): read when .+\.$")
 SEED_LINE = re.compile(r"^- ([a-z0-9-]+): (.+)$")
-RUN_HEAD = re.compile(r"^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
-TAGS = re.compile(r"^(-|[a-z]+=\S+( [a-z]+=\S+)*)$")
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 TEXT_EXT = {".md", ".sh", ".py", ".txt", ".yaml", ".yml", ".json"}
 
@@ -83,7 +80,7 @@ def frontmatter(path, rep, rel):
         return None, text
     try:
         data = yaml.safe_load(text[4:end]) or {}
-    except yaml.YAMLError as e:
+    except (yaml.YAMLError, ValueError) as e:
         rep.err(rel, f"frontmatter is not valid YAML: {str(e).splitlines()[0]}")
         return None, text
     if not isinstance(data, dict):
@@ -163,7 +160,10 @@ def check_separation(root, files, rep):
             rep.err(os.path.join(FRAMEWORK, x), f"garden/ holds only {', '.join(FRAMEWORK_DIRS)}: "
                     "your own content goes outside garden/ (docs/, seeds/, skills/, memory/)")
     for x in subdirs(os.path.join(g, "skills")):
-        if x not in FRAMEWORK_SKILLS:
+        if x in RETIRED_SKILLS:
+            rep.err(os.path.join(FRAMEWORK, "skills", x), f"garden's {x} skill is {RETIRED_SKILLS[x]}: "
+                    "delete this folder (garden/docs/MIGRATING.md)")
+        elif x not in FRAMEWORK_SKILLS:
             rep.err(os.path.join(FRAMEWORK, "skills", x),
                     f"not one of garden's skills: your own shared skills go in skills/{x}/")
     for rel in files:
@@ -202,7 +202,7 @@ def check_router(root, rep):
     meta = d.get("metadata") if isinstance(d.get("metadata"), dict) else {}
     fmt = str(meta.get("seeds-format", ""))
     if not re.match(r"^\d+\.\d+$", fmt):
-        rep.err("SKILL.md", "metadata.seeds-format is missing (\"1.0\")")
+        rep.err("SKILL.md", "metadata.seeds-format is missing (\"2.0\")")
     elif int(fmt.split(".")[0]) != FORMAT_MAJOR:
         rep.err("SKILL.md", f"seeds-format {fmt}: this validator knows major {FORMAT_MAJOR}")
     if words(body) > 600:
@@ -292,132 +292,313 @@ def check_docs(root, reld, rep):
 
 
 # ---------------------------------------------------------------- memory
-# One table for the validator and garden/skills/memory/write.py. kind: (header, intro or None, max lines, max line length).
-# Compaction is due at 80 % of a budget; at 100 % write.py refuses the write and the validator fails the file.
-MEMORY_FILES = {
-    "memory": ("# Memory", MEMORY_INTRO, 60, 400),
-    "lessons": ("# Lessons", LESSONS_INTRO, 100, 400),
-    "runs": ("# Runs", None, 200, 400),
-    "unrouted": ("# Unrouted", None, 200, 400),
-    "rejected": ("# Rejected", REJECTED_INTRO, 100, 400),
-    "archive": ("# Archive", None, 300, 400),
-    "topic": (None, None, 300, None),
+# One table for the validator and garden/skills/memory/write.py (garden/docs/SPEC.md §6-7). A memory folder is the
+# root's memory/ or seeds/<name>/memory/:
+#   INDEX.md     one line per committed file: - [<file>](committed/<file>): read when <condition>.
+#   committed/   YYYY-MM-DD-<description>.md: memories the owner stated, or promoted after a 2nd sighting
+#   pending/     YYYY-MM-DD-<description>.md: seen once, waiting for a 2nd sighting (never indexed)
+#   rejected.md  the root's only: proposals the owner declined
+# Compaction is due at 80 % of a budget; at 100 % write.py refuses the write and the validator fails the folder.
+MEMORY_BUDGETS = {
+    "index": 50,          # INDEX.md entries (one per committed file)
+    "index_line": 300,    # characters per INDEX.md line
+    "committed": 50,      # files in committed/
+    "pending": 30,        # files in pending/
+    "file": 1200,         # characters per committed or pending file
+    "rejected": 100,      # lines in rejected.md
+    "rejected_line": 400,  # characters per rejected.md line
 }
 COMPACT_AT = 0.8
-SPECIAL = {"runs.md": "runs", "unrouted.md": "unrouted", "archive.md": "archive", "lessons.md": "lessons",
-           "rejected.md": "rejected"}
+MEMORY_TYPES = ("fact", "decision", "preference", "lesson")
+MEMORY_KEYS = {"type", "date", "source", "seen"}
+MEMORY_NAME = re.compile(r"^(\d{4}-\d{2}-\d{2})-([a-z0-9]+(?:-[a-z0-9]+)+)\.md$")
+MEMORY_DESC_MAX = 50
+INDEX_HEADER = "# Memory"
+INDEX_INTRO = ("One line per committed memory, most valuable first: tools may load only the start. "
+               "Open a file only when its line fits the task.")
+INDEX_LINE = re.compile(r"^- \[([^\]/]+)\]\(([^)]+)\): read when .+\.$")
+REJECTED_HEADER = "# Rejected"
+# The 1.x memory files (seeds-format 1.0): any of them left means a half-done migration.
+OLD_MEMORY = ("runs.md", "lessons.md", "archive.md", "unrouted.md")
+OWNER_SOURCE = re.compile(r"^owner\b", re.I)
 
 
-def memory_kind(rel):
-    """The kind of a memory file from its path relative to the root, or None if it is not a memory file."""
+# Text that is untrusted until verified (tool output, web pages, issue text, called-seed reports) must never
+# become memory as instructions, secrets or hidden characters.
+INSTRUCTION = [
+    r"\b(ignore|disregard|forget|override)\b.{0,40}\b(previous|prior|above|earlier|all|your|these)\b.{0,20}\b(instructions?|rules?|prompts?|guidelines?)\b",
+    r"\b(new|updated|real|actual) (system )?(instructions?|rules?)\b",
+    r"\bsystem prompt\b", r"</?\s*(system|assistant|user|instructions?)\s*>",
+    r"\byou (are|must|should|will) (now|always|never|from now on)\b", r"\bfrom now on\b",
+    r"\b(do not|don't|never) (tell|inform|mention|reveal|show)\b.{0,30}\b(owner|user|human)\b",
+    r"\b(run|execute|exec)\b.{0,15}\b(this|the following) (command|script|code)\b",
+    r"\b(curl|wget)\b[^|]{0,200}\|\s*(ba|z)?sh\b",
+    r"^\s*(always|never)\b",
+]
+SECRET = [
+    r"\bgh[pousr]_[A-Za-z0-9]{20,}", r"\bgithub_pat_[A-Za-z0-9_]{20,}", r"\bsk-(ant-)?[A-Za-z0-9_-]{20,}",
+    r"\bAKIA[0-9A-Z]{16}\b", r"\bxox[abpors]-[A-Za-z0-9-]{10,}", r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}",
+    r"\b(api[_-]?key|access[_-]?token|auth[_-]?token|secret|password|passwd)\b\s*[:=]\s*['\"]?[^\s'\"]{8,}",
+    r"\bAIza[0-9A-Za-z_-]{30,}", r"://[^/\s:@]+:[^/\s@]+@",
+]
+
+
+def scan(text):
+    """The first reason this text must not become memory, or None."""
+    for ch in text:
+        if ch in "\n\t":
+            continue
+        cat = unicodedata.category(ch)
+        if cat in ("Cc", "Cf", "Co", "Cs", "Cn") or ch in "   ":
+            return f"invisible or control character U+{ord(ch):04X} ({unicodedata.name(ch, cat)})"
+    for pat in SECRET:
+        if re.search(pat, text, re.I):
+            return "it looks like a secret or token: never store one; say where it lives instead"
+    for pat in INSTRUCTION:
+        m = re.search(pat, text, re.I | re.M)
+        if m:
+            return (f"instruction-like text ({m.group(0).strip()!r}): memory holds facts, not instructions; "
+                    "a rule goes to docs through a staged change (garden/skills/memory/stage.md), and untrusted "
+                    "text stays out unless verified")
+    return None
+
+
+def scan_lines(text):
+    """[(line number, reason)] for each line of a memory file that must not be memory."""
+    return [(i, r) for i, line in enumerate(text.splitlines(), 1) for r in [scan(line)] if r]
+
+
+def memory_place(rel):
+    """(memory folder, part, file name) for a path relative to the root, or None if it is not memory.
+    part is index, committed, pending or rejected."""
     parts = rel.replace(os.sep, "/").split("/")
     if parts[:1] == ["seeds"] and len(parts) >= 3:
-        parts = parts[2:]
-    elif parts[:1] == ["seeds"]:
-        return None
-    if parts == ["MEMORY.md"]:
-        return "memory"
-    if len(parts) == 2 and parts[0] == "memory" and parts[1].endswith(".md"):
-        if parts[1] == "rejected.md" and rel.startswith("seeds"):
+        mdir, parts = "/".join(parts[:3]), parts[2:]
+        if parts[0] != "memory":
             return None
-        return SPECIAL.get(parts[1], "topic")
+    elif parts[:1] == ["memory"]:
+        mdir = "memory"
+    else:
+        return None
+    rest = parts[1:]
+    if rest == ["INDEX.md"]:
+        return mdir, "index", "INDEX.md"
+    if rest == ["rejected.md"] and mdir == "memory":
+        return mdir, "rejected", "rejected.md"
+    if len(rest) == 2 and rest[0] in ("committed", "pending"):
+        return mdir, rest[0], rest[1]
     return None
 
 
-def line_problem(kind, line):
-    """What is wrong with one list line of a memory file of this kind, or None."""
-    if kind in ("memory", "lessons"):
-        if not MEMORY_LINE.match(line):
-            return "not a memory line: - YYYY-MM-DD <fact> [· from: <seed>]"
-        if kind == "lessons" and not LESSON_SEEN.search(line):
-            return "a lesson ends with · seen: <run>[, <run>]"
-    elif kind == "rejected":
-        if not REJECTED_LINE.match(line):
-            return "not a rejected line: - YYYY-MM-DD | <proposal> | <reason>"
-    elif kind in ("runs", "unrouted"):
-        parts = line.split(" | ")
-        if len(parts) == 4 and line.endswith(" |"):
-            parts[3] = parts[3][:-2]
-            parts.append("")
-        if len(parts) != 5:
-            return "not a run line: - <date> <time> | <task> | <outcome> | <tags> | <note>"
-        head, task, outcome, tags, note = parts
-        if not RUN_HEAD.match(head):
-            return "starts with - YYYY-MM-DD HH:MM"
-        if not NAME_RE.match(task):
-            return f"task slug {task!r}: lowercase letters, digits and hyphens"
-        if kind == "unrouted":
-            if outcome != "one-off":
-                return "an unrouted line's outcome is one-off"
-        elif task == "retro":
-            if not re.match(r"^\d+ runs?$", outcome):
-                return "a retro line's third field is <n> runs"
-        elif outcome not in OUTCOMES:
-            return f"outcome {outcome!r}: one of {', '.join(sorted(OUTCOMES))}"
-        if not TAGS.match(tags):
-            return "tags are key=value pairs separated by spaces, or -"
-        if len(note) > 140:
-            return f"the note is {len(note)} characters (budget 140)"
+def name_problem(name):
+    m = MEMORY_NAME.match(name)
+    if not m:
+        return "a memory file is named YYYY-MM-DD-<short-kebab-description>.md (at least two words)"
+    try:
+        datetime.date.fromisoformat(m.group(1))
+    except ValueError:
+        return f"{m.group(1)} is not a date"
+    if len(m.group(2)) > MEMORY_DESC_MAX:
+        return f"the description is {len(m.group(2))} characters (budget {MEMORY_DESC_MAX}): keep it short and grepable"
     return None
 
 
-def file_problems(kind, text):
-    """[(line number or None, problem)] for a whole memory file of this kind."""
-    header, intro, max_lines, max_len = MEMORY_FILES[kind]
-    lines = text.splitlines()
+def description_of(name):
+    m = MEMORY_NAME.match(name)
+    return m.group(2) if m else name
+
+
+def parse_memory(text):
+    """(frontmatter dict or None, body, problem or None) for a committed or pending file."""
+    if not text.startswith("---\n"):
+        return None, text, "no frontmatter (the file starts with ---: type, date, source)"
+    end = text.find("\n---\n", 4)
+    if end < 0:
+        return None, text, "the frontmatter is not closed with ---"
+    try:
+        d = yaml.safe_load(text[4:end]) or {}
+    except (yaml.YAMLError, ValueError) as e:  # ValueError: a date-like value that is no date (2026-13-40)
+        return None, text, f"the frontmatter is not valid YAML: {str(e).splitlines()[0]}"
+    if not isinstance(d, dict):
+        return None, text, "the frontmatter is not a mapping"
+    return d, text[end + 5:], None
+
+
+def memory_file_problems(part, name, text):
+    """[problem] for one committed or pending file: name, frontmatter, the promotion gate, size."""
     out = []
-    if header and (not lines or lines[0] != header):
-        out.append((1, f'the first line must be "{header}"'))
-    if len(lines) > max_lines:
-        out.append((None, f"{len(lines)} lines (budget {max_lines})"))
-    if not header:
-        return out
-    for i, line in enumerate(lines[1:], 2):
-        if not line.strip() or line == intro:
-            continue
-        if max_len and len(line) > max_len:
-            out.append((i, f"{len(line)} characters (budget {max_len})"))
-        if kind != "archive":
-            p = line_problem(kind, line)
-            if p:
-                out.append((i, p))
+    p = name_problem(name)
+    if p:
+        out.append(p)
+    if len(text) > MEMORY_BUDGETS["file"]:
+        out.append(f"{len(text)} characters (budget {MEMORY_BUDGETS['file']}): a memory is a few lines")
+    d, body, p = parse_memory(text)
+    if p:
+        return out + [p]
+    extra = set(d) - MEMORY_KEYS
+    if extra:
+        out.append(f"unknown frontmatter keys: {', '.join(sorted(map(str, extra)))} (allowed: type, date, source, seen)")
+    if d.get("type") not in MEMORY_TYPES:
+        out.append(f"type {d.get('type')!r}: one of {', '.join(MEMORY_TYPES)}")
+    m = MEMORY_NAME.match(name)
+    if str(d.get("date", "")) != (m.group(1) if m else None):
+        out.append("date is missing or differs from the date in the file name")
+    source = d.get("source")
+    if not isinstance(source, str) or not source.strip() or "\n" in source.strip():
+        out.append("source is missing: one line saying where it came from (owner: \"<their words>\" for the owner)")
+        source = ""
+    seen = d.get("seen", [])
+    if not isinstance(seen, list) or not all(isinstance(x, str) and NAME_RE.match(x) for x in seen):
+        out.append("seen is a list of task slugs")
+        seen = []
+    owner = bool(OWNER_SOURCE.match(source.strip()))
+    if part == "pending" and not seen:
+        out.append("a pending memory has seen: [<task>], the task that saw it")
+    if part == "committed" and not owner and len(set(seen)) < 2:
+        out.append("the promotion gate: a committed memory is the owner's (source: owner: ...) "
+                   "or was seen by 2 tasks (seen: [a, b])")
+    if not body.strip():
+        out.append("no body: say the memory and why it holds")
     return out
 
 
-def check_memory_file(root, rel, kind, rep):
-    for i, problem in file_problems(kind, read(os.path.join(root, rel))):
-        rep.err(f"{rel}:{i}" if i else rel, problem)
-
-
-def check_memory(root, reld, rep, runs=False, unrouted=False):
-    """reld is "" for the root or seeds/<name>."""
-    mem = os.path.join(reld, "MEMORY.md")
-    mdir = os.path.join(reld, "memory")
-    if not require(root, mem, rep):
-        return
-    check_memory_file(root, mem, "memory", rep)
-    present = set(x for x in os.listdir(os.path.join(root, mdir)) if x.endswith(".md")) \
-        if os.path.isdir(os.path.join(root, mdir)) else set()
-    if os.path.isdir(os.path.join(root, mdir)):
-        for x in subdirs(os.path.join(root, mdir)):
-            rep.err(os.path.join(mdir, x), "memory folders are flat: no subfolders")
-    linking = read(os.path.join(root, mem))
-    if "lessons.md" in present:
-        linking += read(os.path.join(root, mdir, "lessons.md"))
-    named = set(re.findall(r"memory/([A-Za-z0-9._-]+\.md)", linking))
-    for x in sorted(named - present - set(SPECIAL)):
-        rep.err(mem, f"names memory/{x}, which does not exist")
-    for x in sorted(present):
-        rel = os.path.join(mdir, x)
-        kind = memory_kind(rel)
-        if kind is None:
-            rep.err(rel, "rejected.md lives in the root memory/ only")
+def index_entries(text):
+    """([(line number, file, target)], [(line number, problem)]) for a memory INDEX.md."""
+    lines = text.splitlines()
+    entries, out = [], []
+    if not lines or lines[0] != INDEX_HEADER:
+        out.append((1, f'the first line must be "{INDEX_HEADER}"'))
+    for i, line in enumerate(lines[1:], 2):
+        if not line.strip() or line == INDEX_INTRO:
             continue
-        if kind == "topic" and x not in named:
-            rep.err(rel, "a topic file not linked from MEMORY.md or memory/lessons.md")
-        check_memory_file(root, rel, kind, rep)
-    if runs:
-        require(root, os.path.join(mdir, "runs.md"), rep)
+        m = INDEX_LINE.match(line)
+        if not m:
+            out.append((i, "not an index line: - [<file>](committed/<file>): read when <condition>."))
+            continue
+        if len(line) > MEMORY_BUDGETS["index_line"]:
+            out.append((i, f"{len(line)} characters (budget {MEMORY_BUDGETS['index_line']})"))
+        f, target = m.groups()
+        if target.startswith("pending/"):
+            out.append((i, f"{target}: pending memories are never indexed (they are not memory yet)"))
+        elif target != f"committed/{f}":
+            out.append((i, f"the link is committed/{f}, not {target}"))
+        else:
+            entries.append((i, f, target))
+    if len(entries) > MEMORY_BUDGETS["index"]:
+        out.append((None, f"{len(entries)} entries (budget {MEMORY_BUDGETS['index']})"))
+    return entries, out
+
+
+def rejected_problems(text):
+    lines = text.splitlines()
+    out = []
+    if not lines or lines[0] != REJECTED_HEADER:
+        out.append((1, f'the first line must be "{REJECTED_HEADER}"'))
+    if len(lines) > MEMORY_BUDGETS["rejected"]:
+        out.append((None, f"{len(lines)} lines (budget {MEMORY_BUDGETS['rejected']})"))
+    for i, line in enumerate(lines[1:], 2):
+        if not line.strip() or line == REJECTED_INTRO:
+            continue
+        if len(line) > MEMORY_BUDGETS["rejected_line"]:
+            out.append((i, f"{len(line)} characters (budget {MEMORY_BUDGETS['rejected_line']})"))
+        if not REJECTED_LINE.match(line):
+            out.append((i, "not a rejected line: - YYYY-MM-DD | <proposal> | <reason>"))
+    return out
+
+
+def memory_files(root, mdir, part):
+    d = os.path.join(root, mdir, part)
+    return sorted(x for x in os.listdir(d) if not x.startswith(".") and os.path.isfile(os.path.join(d, x))) \
+        if os.path.isdir(d) else []
+
+
+def memory_usage(root, mdir):
+    """{budget name: (used, budget)} for one memory folder, for the 80 % notes."""
+    use = {"committed": len(memory_files(root, mdir, "committed")), "pending": len(memory_files(root, mdir, "pending"))}
+    ip = os.path.join(root, mdir, "INDEX.md")
+    use["index"] = len(index_entries(read(ip))[0]) if os.path.isfile(ip) else 0
+    rp = os.path.join(root, mdir, "rejected.md")
+    if os.path.isfile(rp):
+        use["rejected"] = len(read(rp).splitlines())
+    return {k: (v, MEMORY_BUDGETS[k]) for k, v in use.items()}
+
+
+def memory_problems(root, mdir):
+    """[(path, problem)] for one memory folder (mdir: memory or seeds/<name>/memory)."""
+    out = []
+    owner_dir = os.path.dirname(mdir)
+    old = os.path.join(owner_dir, "MEMORY.md")
+    if os.path.exists(os.path.join(root, old)):
+        out.append((old, "MEMORY.md is gone since seeds-format 2.0: its lines become files in "
+                    f"{mdir}/committed/, listed in {mdir}/INDEX.md (garden/docs/MIGRATING.md)"))
+    path = os.path.join(root, mdir)
+    if not os.path.isdir(path):
+        return out + [(os.path.join(mdir, "INDEX.md"), "required file is missing")]
+    for x in sorted(os.listdir(path)):
+        rel = os.path.join(mdir, x)
+        if x.startswith("."):
+            continue
+        if x in OLD_MEMORY:
+            out.append((rel, "the 1.x memory layout (seeds-format 1.0): runs.md, lessons.md, archive.md and "
+                        "unrouted.md are gone (garden/docs/MIGRATING.md)"))
+        elif os.path.isdir(os.path.join(path, x)):
+            if x not in ("committed", "pending"):
+                out.append((rel, "memory folders hold only committed/ and pending/"))
+        elif x == "rejected.md" and mdir != "memory":
+            out.append((rel, "rejected.md lives in the root memory/ only"))
+        elif x not in ("INDEX.md", "rejected.md"):
+            out.append((rel, f"not part of the memory layout: {mdir}/ holds INDEX.md, committed/ and pending/ "
+                        "(and rejected.md at the root)"))
+    if not os.path.isfile(os.path.join(path, "INDEX.md")):
+        out.append((os.path.join(mdir, "INDEX.md"), "required file is missing"))
+        entries = []
+    else:
+        text = read(os.path.join(path, "INDEX.md"))
+        entries, problems = index_entries(text)
+        for i, problem in problems + scan_lines(text):
+            out.append((f"{mdir}/INDEX.md" + (f":{i}" if i else ""), problem))
+    descs = {}
+    for part in ("committed", "pending"):
+        d = os.path.join(path, part)
+        for x in subdirs(d):
+            out.append((os.path.join(mdir, part, x), f"{part}/ is flat: no subfolders"))
+        names = memory_files(root, mdir, part)
+        if len(names) > MEMORY_BUDGETS[part]:
+            out.append((os.path.join(mdir, part), f"{len(names)} files (budget {MEMORY_BUDGETS[part]})"))
+        for x in names:
+            rel = os.path.join(mdir, part, x)
+            text = read(os.path.join(d, x))
+            for problem in memory_file_problems(part, x, text):
+                out.append((rel, problem))
+            out += [(f"{rel}:{i}", reason) for i, reason in scan_lines(text)]
+            desc = description_of(x)
+            if desc in descs:
+                out.append((rel, f"the description {desc!r} is also {descs[desc]}: one memory per description"))
+            else:
+                descs[desc] = rel
+    committed = memory_files(root, mdir, "committed")
+    listed = [f for _, f, _ in entries]
+    for i, f, _ in entries:
+        if f not in committed:
+            out.append((f"{mdir}/INDEX.md:{i}", f"lists committed/{f}, which does not exist"))
+    for f in sorted(set(listed)):
+        if listed.count(f) > 1:
+            out.append((f"{mdir}/INDEX.md", f"committed/{f} is listed more than once"))
+    for f in committed:
+        if f not in listed:
+            out.append((os.path.join(mdir, "committed", f), "not listed in INDEX.md: every committed memory has one line"))
+    rp = os.path.join(path, "rejected.md")
+    if mdir == "memory" and os.path.isfile(rp):
+        text = read(rp)
+        for i, problem in rejected_problems(text) + scan_lines(text):
+            out.append((f"{mdir}/rejected.md" + (f":{i}" if i else ""), problem))
+    return out
+
+
+def check_memory(root, mdir, rep):
+    for rel, problem in memory_problems(root, mdir):
+        rep.err(rel, problem)
 
 
 # ---------------------------------------------------------------- seeds
@@ -467,6 +648,8 @@ def load_seed(root, name, shared, rep):
             rep.installed.add(s[10:])
         elif s in MANDATORY:
             rep.err(seed_md, f"{s} is mandatory and implicit: don't list it")
+        elif s in RETIRED_SKILLS and s not in shared and s not in bundled:
+            rep.err(seed_md, f"{s} is {RETIRED_SKILLS[s]}: don't list it")
         elif s not in shared and s not in bundled:
             rep.err(seed_md, f"skill {s} resolves to none of garden/skills/{s}/ENTRY.md, skills/{s}/ENTRY.md, "
                     f"{reld}/skills/{s}/ENTRY.md")
@@ -503,7 +686,7 @@ def load_seed(root, name, shared, rep):
             if target not in calls:
                 rep.err(wf, f"seed:{target} is not in SEED.md's calls")
     check_docs(root, os.path.join(reld, "docs"), rep)
-    check_memory(root, reld, rep, runs=True)
+    check_memory(root, os.path.join(reld, "memory"), rep)
     return {"name": name, "when": when, "group": d.get("group"), "calls": calls, "seed_md": seed_md}
 
 
@@ -552,7 +735,7 @@ def check_seed_index(root, seeds, rep):
             if not s["group"]:
                 rep.err(s["seed_md"], "more than 20 seeds: every seed needs a group")
     if len(seeds) > 50:
-        rep.warn(rel, f"{len(seeds)} seeds: rsi's sprawl check should propose merging or retiring some")
+        rep.warn(rel, f"{len(seeds)} seeds: the retro's sprawl check should propose merging or retiring some")
 
 
 # ---------------------------------------------------------------- links
@@ -598,7 +781,7 @@ def validate(root):
             shared.add(s)
     any_disable(root, files, rep)
     check_docs(root, "docs", rep)
-    check_memory(root, "", rep)
+    check_memory(root, "memory", rep)
     seeds = []
     for name in subdirs(os.path.join(root, "seeds")):
         s = load_seed(root, name, shared, rep)
