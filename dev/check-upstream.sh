@@ -12,7 +12,7 @@ while read -r sum path; do
 done <<'SUMS'
 382384a0aafafc7895329eccc5beab12a786bbb136b34c7da99f3c3aea8294ed docs/INDEX.md
 a3a660efa9eebf365b79ced781475e76685407d7e2d744c262562543a30e5c1f seeds/INDEX.md
-b01f47c0e4aa34580b8ddf3140acc94de3a44517c603aa1c6ee595855a042aa8 MEMORY.md
+fbca4e13b6de9734f4a607c56cea87ec3f440ef2ff6c11371186e3ed1011b3ac MEMORY.md
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 memory/.gitkeep
 SUMS
 for d in docs seeds memory; do

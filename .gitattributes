@@ -5,3 +5,6 @@ memory/archive.md merge=union
 seeds/*/MEMORY.md merge=union
 seeds/*/memory/runs.md merge=union
 seeds/*/memory/archive.md merge=union
+memory/lessons.md merge=union
+memory/rejected.md merge=union
+seeds/*/memory/lessons.md merge=union

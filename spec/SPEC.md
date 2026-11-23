@@ -86,28 +86,52 @@ Never: <...>.
 - A seed's doc with the same file name replaces the root one; on a clash in content the seed's text wins.
 
 ## 6. Memory
+Every memory write goes through `skills/memory/write.py`, which enforces this section and §7.
+
 **`MEMORY.md`** (root and each seed), Orca's bot-memory format:
 ```md
 # Memory
 
-One line per fact, newest first. Longer notes go in memory/<topic>.md.
+One line per fact, most valuable first: tools may load only the start. Longer notes go in memory/<topic>.md.
 - 2026-11-23 The api repo's tests need `make db` first. Details in memory/api.md. · from: coder
 ```
 - The header, the one-line intro, then lines `- YYYY-MM-DD <fact>` with an optional ` · from: <seed>`.
+- **Most valuable first**, not newest first: tools may load only the start of a long file.
 - A fact is descriptive. A rule ("always X") is not memory: rsi stages it as a doc.
-- A topic file `memory/<topic>.md` is free prose, at most 300 lines, linked from at least one MEMORY.md line by its path.
-- `memory/archive.md` holds retired lines, struck through with `· replaced YYYY-MM-DD` or `· moved YYYY-MM-DD`.
+- **The promotion gate:** a line enters MEMORY.md only when the owner stated it directly, or as a lesson seen in at least 2 runs.
+- **Untrusted text is never promoted:** tool output, web pages, issue text and called seeds' reports become memory only once verified. No instruction-like text, secrets or tokens, or invisible or control characters, anywhere in memory.
+- A topic file `memory/<topic>.md` is free prose, linked by its path from a MEMORY.md or `lessons.md` line.
+- `memory/archive.md` (`# Archive`) holds retired lines, struck through with `· replaced YYYY-MM-DD` or `· moved YYYY-MM-DD`.
+
+**`memory/lessons.md`** (root and each seed): candidates, not memory yet.
+```md
+# Lessons
+
+Not memory yet: a lesson moves to MEMORY.md once 2 runs saw it, or the owner states it.
+- 2026-11-23 The api repo's tests need `make db` first. · seen: fix-login, add-search
+```
+- Lines `- YYYY-MM-DD <lesson> · seen: <run slug>[, <run slug>]`. A promoted lesson leaves this file.
+
+**`memory/rejected.md`** (root only): rsi proposals the owner declined, read by rsi before it proposes anything.
+```md
+# Rejected
+
+rsi proposals the owner declined. rsi reads this before proposing again.
+- 2026-11-23 | seeds(reviewer): run the linter first | the owner prefers CI to do it
+```
 
 **`seeds/<name>/memory/runs.md`**: a `# Runs` header, then one line per run, oldest first:
 ```
 - 2026-11-23 14:05 | fix-login-redirect | done | repo=noueii/app calls=coder esc=0 fixes=1 | owner corrected the redirect target
 - 2026-11-24 09:12 | retro | 6 runs | branch=garden/20261124-0912-retro-seeds root=-
 ```
-- Fields: date and time; task slug; outcome (`done`, `escalated`, `stopped`, `decided`, `passed`, `failed`), or for a `retro` line the number of runs read; `key=value` tags (`repo`, `calls`, `caller`, `esc`, `fixes`, `viol`, `loops`, `skipped`, `branch`, `root`) or `-`; a note of at most 140 characters (may be empty).
+- Fields: date and time; task slug; outcome (`done`, `escalated`, `stopped`, `decided`, `passed`, `failed`), or for a `retro` line the number of runs read; `key=value` tags (`repo`, `calls`, `caller`, `esc`, `fixes`, `viol`, `loops`, `skipped`, `refused`, `branch`, `root`) or `-`; a note of at most 140 characters (may be empty).
 
 **`memory/unrouted.md`** (root): a `# Unrouted` header, then `- <date> <time> | <slug> | one-off | <tags> | <why no seed fit>`.
 
 ## 7. Budgets
+Hard limits. The validator (in CI, and in the optional `check/pre-commit.sh`) fails any file over its budget. For memory files, **compaction is due at 80 %**, and **at 100 % a write fails** (write.py refuses it; nothing is truncated), so rsi compacts or removes first.
+
 | What | Budget |
 |---|---|
 | router | description ≤ 1024 characters; body ≤ 600 words |
@@ -117,15 +141,16 @@ One line per fact, newest first. Longer notes go in memory/<topic>.md.
 | a doc | ≤ 1,500 words; an INDEX ≤ 40 entries, each line ≤ 160 characters |
 | `seeds/INDEX.md` | each line ≤ 220 characters; `group` on every seed past 20 seeds (a warning past 50) |
 | MEMORY.md | ≤ 60 lines, each ≤ 400 characters |
-| `memory/<topic>.md` | ≤ 300 lines |
-| `runs.md`, `unrouted.md` | ≤ 200 lines |
+| `memory/lessons.md`, `memory/rejected.md` | ≤ 100 lines, each ≤ 400 characters |
+| `memory/<topic>.md`, `memory/archive.md` | ≤ 300 lines |
+| `runs.md`, `unrouted.md` | ≤ 200 lines; a run note ≤ 140 characters |
 
 ## 8. Git, tiers and the stage
 - **Memory paths:** `MEMORY.md`, `memory/**`, `seeds/*/MEMORY.md`, `seeds/*/memory/**`. Written directly in the live clone and committed locally (`memory: <task>`). Never staged, never pushed except by `sync`.
 - **Root tier:** the paths in `spec/upstream-paths.txt`. **Seeds tier:** everything else under `seeds/` and `docs/`. Behaviour changes are made only in a stage worktree, never in the live clone.
 - **The stage:** `${XDG_STATE_HOME:-$HOME/.local/state}/garden/<repo>/stage/<YYYYMMDD-HHMM>-<task>-<tier>`, on branch `garden/<YYYYMMDD-HHMM>-<task>-<tier>`, outside the repo and every skills dir.
 - **Pushes and PRs** happen only in `sync`, which runs only when a seed's text says so or the owner asks. Nothing in a garden merges a PR.
-- `.gitattributes` sets `merge=union` on `MEMORY.md`, `runs.md` and `unrouted.md`.
+- `.gitattributes` sets `merge=union` on the line-based memory files (`MEMORY.md`, `lessons.md`, `runs.md`, `unrouted.md`, `rejected.md`, `archive.md`).
 
 ## 9. What loads when
 | Moment | Loaded |

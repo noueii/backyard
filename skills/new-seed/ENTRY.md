@@ -21,7 +21,7 @@ Paths are relative to the garden root. The format is `spec/SPEC.md`; examples ar
 6. **`access`:** `read-only` (reads and reports: reviewers, auditors), `edit` (changes files but runs nothing), or `full` (the default). It is enforced when another seed calls this one (`skills/handoff/access.md`).
 7. **Asking the owner:** `escalate` in skills (it asks when stuck), or an `autonomy` fallback: `decide-and-record` or `stop-and-record`.
 8. **Sync (optional):** should this seed sync the garden, and when ("at the end of every run", "when I say ship it")? If yes, add `sync` to its optional skills and write the moment into SEED.md in the owner's words. Recommend no sync unless the owner works on more than one machine or shares the garden.
-9. **Seed memory:** facts the owner already knows that the seed should start with (MEMORY.md lines). Rules go to docs, not memory.
+9. **Seed memory:** facts the owner states that the seed should start with: MEMORY.md lines, written in the stage with `skills/memory/write.py add ... --owner` (it scans them). Rules go to docs, not memory.
 
 ## Build it (in a stage, seeds tier)
 Open the stage (`skills/rsi/stage.md` §2), then write, inside it:

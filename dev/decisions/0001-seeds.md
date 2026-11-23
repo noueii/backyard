@@ -60,6 +60,7 @@ garden/                     the user's repo (a copy of noueii/garden); the root 
 4. **Q5–Q7 as recommended:** the router reads `seeds/INDEX.md`; docs say clone + symlink, and `npx skills add` gets one line as a read-only trial; maintainer files sit under `dev/`, shipped inert.
 5. **A new repo:** nothing to migrate or remove, so 0014's cut-over PR and removal table are gone. The earlier psai ADRs stay in psai; this is garden's ADR 0001.
 6. **No LICENSE yet:** the owner chose none for psai; the README flags it as undecided.
+7. **Memory safety (added during the build, owner-approved from research on Letta, OpenClaw and Hermes):** a promotion gate, no promotion of untrusted text, hard budgets, and a rejected list (§13).
 
 ---
 
@@ -116,7 +117,7 @@ autonomy: stop-and-record            # required when escalate is not in skills
 - Vendoring a third-party skill copies it into `skills/<s>/` (root or seed), renames `SKILL.md` to `ENTRY.md`, keeps its LICENSE, and records `metadata: {source, commit}`.
 
 ### 2.4 Memory, runs and docs formats
-Unchanged from 0014 §2.5, renamed: MEMORY.md is Orca's format (`- YYYY-MM-DD <fact>` with an optional ` · from: <seed>`, newest first, details in `memory/<topic>.md`, retired lines in `memory/archive.md`); `seeds/<name>/memory/runs.md` holds one line per run (`date time | task | outcome | tags | note`); `memory/unrouted.md` logs one-off tasks; `docs/INDEX.md` lists every doc as `- [<file>](<file>): read when <condition>.` A seed's docs override the root's. The tag `viol` now counts **access** violations.
+Unchanged from 0014 §2.5, renamed: MEMORY.md is Orca's format (`- YYYY-MM-DD <fact>` with an optional ` · from: <seed>`, details in `memory/<topic>.md`, retired lines in `memory/archive.md`), ordered most valuable first and written only through the promotion gate (§13); `seeds/<name>/memory/runs.md` holds one line per run (`date time | task | outcome | tags | note`); `memory/unrouted.md` logs one-off tasks; `docs/INDEX.md` lists every doc as `- [<file>](<file>): read when <condition>.` A seed's docs override the root's. The tag `viol` now counts **access** violations.
 
 ### 2.5 Budgets
 As 0014 §2.7, enforced by the validator: router description ≤ 1024 characters and body ≤ 600 words; ENTRY.md body ≤ 800 words, supporting file ≤ 300 lines; SEED.md body ≤ 500 words, `when` ≤ 200 characters; `workflow.md` ≤ 800 words; a doc ≤ 1,500 words; an INDEX ≤ 40 entries of ≤ 160 characters; a `seeds/INDEX.md` line ≤ 220 characters; MEMORY.md ≤ 60 lines of ≤ 400 characters; a topic file ≤ 300 lines; `runs.md` and `unrouted.md` ≤ 200 lines. rsi tunes them by root PR.
@@ -132,16 +133,16 @@ A **called** seed does the same in its sub-agent, but never re-routes, never com
 ## 4. RSI in detail
 Unchanged from 0014 §4 except where pushing was involved:
 - **Per run:** one run line and new facts in memory. Only a direct owner correction is staged at once.
-- **Retro triggers:** 5 runs since the last retro; the same signal on 2 runs (`esc>0`, `fixes>0`, `viol>0`, `failed`/`stopped`, the same `skipped` skill); a budget over 90 %; the owner asks.
+- **Retro triggers:** 5 runs since the last retro; the same signal on 2 runs (`esc>0`, `fixes>0`, `viol>0`, `failed`/`stopped`, the same `skipped` skill); a file at 80 % of its budget; the owner asks.
 - **Retro checks** (adapted from mattpocock's `retro`): navigation, automated checks (proposed for the project repo, never owned), standards, always-loaded text, tool economy, information access, routing, calls (including access violations), autonomy, memory hygiene, sprawl, a mandatory removal pass, and rsi itself.
-- **Compaction:** memory is compacted directly; docs and SEED.md compaction is staged.
+- **Compaction:** due at 80 % of a budget; at 100 % memory writes fail (§13). Memory is compacted directly; docs and SEED.md compaction is staged.
 - **4.5 The stage:** one git worktree per task and tier, outside the repo and every skills dir: `${XDG_STATE_HOME:-$HOME/.local/state}/garden/<repo>/stage/<YYYYMMDD-HHMM>-<task>-<tier>`, branch `garden/<YYYYMMDD-HHMM>-<task>-<tier>`, tier `seeds` or `root`. A path in `spec/upstream-paths.txt` belongs to the root tier; anything else under `seeds/` and `docs/` to the seeds tier; memory is never staged.
 - **4.6 The finish (changed):** at the end of the depth-0 run, rsi runs the validator on the stage, **commits it locally** with the PR title and body as the commit message, and removes the worktree. The branch stays. rsi never pushes and never opens a PR: `sync` does that.
-- **Guardrails:** evidence or nothing; at most 5 changes per retro branch; budgets fail CI; owner decisions stick (a closed or reverted proposal becomes a root memory line, found by sync); rules in memory move to docs; rsi never changes which skills are mandatory, never merges and never pushes.
+- **Guardrails:** evidence or nothing; at most 5 changes per retro branch; budgets fail CI; owner decisions stick (a declined proposal goes to `memory/rejected.md`, which rsi reads before proposing); rules in memory move to docs; rsi never changes which skills are mandatory, never merges and never pushes.
 
 ## 5. Shared skill contracts
 ### 5.1 `memory` (mandatory)
-Reads root and seed MEMORY.md and topic files on demand; writes facts directly in the live clone; called seeds write their own seed's memory only when their access allows it, otherwise they return the lines. **At the end of a depth-0 run, memory commits locally:** `git add -- MEMORY.md memory 'seeds/*/MEMORY.md' 'seeds/*/memory'` and `git commit -m "memory: <task>"`. It never pulls or pushes. `.gitattributes` sets `merge=union` on MEMORY.md, `runs.md` and `unrouted.md`. A read-only install (`npx skills add`) writes nothing: memory lines go into the report under `## Memory (not saved)`.
+Reads root and seed MEMORY.md and topic files on demand; writes in the live clone, always through `write.py` and its promotion gate (§13); called seeds write their own seed's memory only when their access allows it, otherwise they return the lines. **At the end of a depth-0 run, memory commits locally:** `git add -- MEMORY.md memory 'seeds/*/MEMORY.md' 'seeds/*/memory'` and `git commit -m "memory: <task>"`. It never pulls or pushes. `.gitattributes` sets `merge=union` on MEMORY.md, `runs.md` and `unrouted.md`. A read-only install (`npx skills add`) writes nothing: memory lines go into the report under `## Memory (not saved)`.
 
 ### 5.2 `rsi` (mandatory)
 Records the run, runs retros, compacts and stages (§4). Files: `ENTRY.md`, `retro.md`, `stage.md`. It may hand to `new-seed` to propose or retire a seed.
@@ -158,7 +159,7 @@ Runs **only** where a seed's text says to, or when the owner asks; never automat
 2. **Push local memory** to the default branch: only when every commit ahead of origin touches memory paths only.
 3. **Push staged behaviour** as PRs, per rsi tier: each local `garden/*` branch is pushed and gets `gh pr create --fill` (title and body from rsi's commit). One PR per branch, so the seeds and root tiers stay separate.
 4. **Pull upstream (garden).** `git fetch upstream --tags`; take the newest `v1.*` tag. If the default branch is an ancestor of it, fast-forward. Otherwise (the usual case, since a used garden has its own commits) the release becomes a **root-tier PR**: a stage worktree merges the tag on a `garden/<date>-upstream-<tag>-root` branch, the validator runs, and the branch is pushed as `root: garden <tag>`. That merge happens on the PR branch only; the owner merges the PR.
-5. **Record decisions:** for `garden/*` PRs closed unmerged since the last sync, add the root memory line `rsi proposal rejected: <what>`.
+5. **Record decisions:** each `garden/*` PR closed unmerged goes to `memory/rejected.md` (§13).
 - **Never merges** a PR, never runs on its own, and without `origin` or `gh` says what it would have done.
 
 ### 5.6 `new-seed`
@@ -207,15 +208,17 @@ An Orca bot hosts a seed with a one-paragraph SOUL.md ("You are seed `<name>`. F
 - **Script tests** (`dev/test-scripts.sh`, in CI): `block.sh`, `call.sh` (dry run), `check.sh` and `sync.sh` in temp repos.
 - **`dev/prove-access.sh`** (§6) and **`dev/prove-install.sh`** (pi and omp list exactly `garden`; opencode and Claude Code send `garden` and no internal name to a fake model; a nested seed, bundled skill and vendored ENTRY.md add nothing; the global line reaches the request; an update reaches the next request). Both need the tools installed, so they run on a maintainer's machine, not in CI.
 
-## 11. PR breakdown (stacked; each small and passing CI)
-1. This ADR.
-2. Spec: `spec/SPEC.md`, `spec/upstream-paths.txt`, the router `SKILL.md` and the empty placeholders.
-3. Validator + CI: `check/validate.py`, `dev/fixtures/`, `dev/check-upstream.sh`, `.github/workflows/garden.yml`.
-4. memory + rsi + sync, plus `.gitattributes`.
-5. escalate + handoff with access levels (`block.sh`, `call.sh`, `check.sh`, `dev/prove-access.sh`).
-6. new-seed: the interview, the examples, vendoring.
-7. Install proof: `dev/prove-install.sh`.
-8. Guide + README: `guide/`, README, AGENTS.md, CLAUDE.md, `dev/AGENTS.md`.
+## 11. Delivery
+One PR on noueii/garden (the owner asked for one PR rather than a stack), with one commit per part:
+1. this ADR;
+2. the spec: `spec/SPEC.md`, `spec/upstream-paths.txt`, the router `SKILL.md` and the empty placeholders;
+3. the validator and CI: `check/validate.py`, `dev/fixtures/`, `dev/check-upstream.sh`, `.github/workflows/garden.yml`;
+4. memory, rsi and sync, plus `.gitattributes`;
+5. escalate and handoff with access levels (`block.sh`, `call.sh`, `check.sh`, `dev/prove-access.sh`);
+6. new-seed: the interview, the examples, vendoring;
+7. memory safety (§13): `write.py`, lessons and rejected files, hard budgets, `check/pre-commit.sh`;
+8. the install proof: `dev/prove-install.sh`;
+9. the guide and README: `guide/`, README, AGENTS.md, CLAUDE.md, `dev/AGENTS.md`.
 
 ## 12. Decisions
 1. **"seed"** (owner, overriding 0014's recommendation of "bot").
@@ -226,3 +229,12 @@ An Orca bot hosts a seed with a one-paragraph SOUL.md ("You are seed `<name>`. F
 6. **Clone + symlink is the documented install** (owner, Q6); `npx skills add` gets one line as a read-only trial.
 7. **Maintainer files in `dev/`, shipped inert** (owner, Q7).
 8. **No LICENSE** for now (owner); the README says it's undecided.
+
+## 13. Memory safety (owner-approved addition, 2026-11-23)
+From research on agent memory (Letta Code's MemFS, OpenClaw's promotion gates, Hermes Agent's hard caps), the owner approved one bundle. All of it goes through one script, `skills/memory/write.py`, which every memory write uses; its formats and budgets come from `check/validate.py`, so there is one table.
+1. **Promotion gate.** A new lesson lands in `memory/lessons.md` (root or seed) with `· seen: <run>`. It moves into MEMORY.md only once 2 runs saw it, or when the owner states it directly (`--owner`). write.py refuses any other MEMORY.md write.
+2. **Untrusted text is never promoted.** Tool output, web pages, issue text and called seeds' reports become memory only once verified; a caller writes what a called seed returned as lessons. Before any write, write.py refuses instruction-like text (including "always"/"never" rules, which go to docs), secrets and tokens, and invisible or control characters, and says why; the run line counts refusals (`refused=`).
+3. **Hard budgets.** In the spec table (`spec/SPEC.md` §7). Compaction is due at 80 %; at 100 % a write fails loudly (nothing truncated, no warning-and-continue), so rsi compacts or removes first. The validator fails any file over budget in CI, and the optional `check/pre-commit.sh` does it locally. MEMORY.md is ordered most valuable first, because tools may load only the start of a long file.
+4. **Rejected list.** Proposals the owner declines (in conversation, or a `garden/*` PR closed unmerged, which sync records) go to `memory/rejected.md`, one line each (date, proposal, reason). rsi reads it before proposing anything.
+
+Not adopted: IDs or counters on memory lines, before/after run comparisons, failing-fixture proofs for checks, and changes to the sync merge rule.

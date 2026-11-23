@@ -19,9 +19,7 @@ Run `status` first when the owner asked in general terms ("sync the garden"), an
 2. **memory:** pushes the local commits to origin's default branch, only if every commit ahead touches memory paths only. Never force.
 3. **upstream:** fetches noueii/garden (`upstream`) and its newest release tag of the same major (`v1.*`). If you have it, nothing to do. Otherwise it merges the tag on a new root-tier branch, `garden/<date>-upstream-<tag>-root`, in a stage outside the repo, and runs the validator there. The default branch is not touched: the release reaches it when the owner merges the PR, and the next `pull` fast-forwards to it. (A garden with no origin and no commits of its own fast-forwards instead.)
 4. **staged:** for each finished local `garden/*` branch (rsi's stages, the upstream branch): push it and open its PR with `gh pr create --fill`, whose title and body are the branch's commit message. One PR per branch, so the seeds tier and the root tier stay separate. A branch that already has a PR is left alone.
-5. **decisions:** lists `garden/*` PRs closed without merging that memory doesn't know yet, as root memory lines (`- <date> rsi proposal rejected: <title> (<url>) · from: sync`). Add them to the top of `MEMORY.md`, then commit and push them like any memory (`sync.sh memory`). rsi won't propose those again without new evidence.
-
-After a run that reached upstream, add or update one root memory line: `- <date> sync: upstream checked, newest <tag>.` rsi's retro reads it.
+5. **decisions:** records each `garden/*` PR closed without merging that `memory/rejected.md` doesn't hold yet (`- <date> | <title> (<url>) | closed without merging`, through write.py). Commit it like any memory (`memory: rejected proposals`) and push it with `sync.sh memory`. rsi reads that list and won't propose those again without new evidence.
 
 ## When it stops
 - **exit 1 (refused or failed):** report the printed reason and stop. Common ones: uncommitted changes (commit memory first), not on the default branch, local non-memory commits on the default branch (they belong on a `garden/*` branch: ask the owner), origin's copy of a branch differs (never force).

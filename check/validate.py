@@ -22,7 +22,11 @@ ACCESS = {"read-only", "edit", "full"}
 AUTONOMY = {"decide-and-record", "stop-and-record"}
 MANDATORY = ("memory", "rsi")
 OUTCOMES = {"done", "escalated", "stopped", "decided", "passed", "failed"}
-MEMORY_INTRO = "One line per fact, newest first. Longer notes go in memory/<topic>.md."
+MEMORY_INTRO = "One line per fact, most valuable first: tools may load only the start. Longer notes go in memory/<topic>.md."
+LESSONS_INTRO = "Not memory yet: a lesson moves to MEMORY.md once 2 runs saw it, or the owner states it."
+REJECTED_INTRO = "rsi proposals the owner declined. rsi reads this before proposing again."
+LESSON_SEEN = re.compile(r" · seen: [a-z0-9-]+(, [a-z0-9-]+)*$")
+REJECTED_LINE = re.compile(r"^- \d{4}-\d{2}-\d{2} \| [^|]+ \| [^|]+$")
 MEMORY_LINE = re.compile(r"^- \d{4}-\d{2}-\d{2} \S.*$")
 DOC_LINE = re.compile(r"^- \[([^\]/]+\.md)\]\(([^)]+)\): read when .+\.$")
 SEED_LINE = re.compile(r"^- ([a-z0-9-]+): (.+)$")
@@ -233,80 +237,132 @@ def check_docs(root, reld, rep):
 
 
 # ---------------------------------------------------------------- memory
+# One table for the validator and skills/memory/write.py. kind: (header, intro or None, max lines, max line length).
+# Compaction is due at 80 % of a budget; at 100 % write.py refuses the write and the validator fails the file.
+MEMORY_FILES = {
+    "memory": ("# Memory", MEMORY_INTRO, 60, 400),
+    "lessons": ("# Lessons", LESSONS_INTRO, 100, 400),
+    "runs": ("# Runs", None, 200, 400),
+    "unrouted": ("# Unrouted", None, 200, 400),
+    "rejected": ("# Rejected", REJECTED_INTRO, 100, 400),
+    "archive": ("# Archive", None, 300, 400),
+    "topic": (None, None, 300, None),
+}
+COMPACT_AT = 0.8
+SPECIAL = {"runs.md": "runs", "unrouted.md": "unrouted", "archive.md": "archive", "lessons.md": "lessons",
+           "rejected.md": "rejected"}
+
+
+def memory_kind(rel):
+    """The kind of a memory file from its path relative to the root, or None if it is not a memory file."""
+    parts = rel.replace(os.sep, "/").split("/")
+    if parts[:1] == ["seeds"] and len(parts) >= 3:
+        parts = parts[2:]
+    elif parts[:1] == ["seeds"]:
+        return None
+    if parts == ["MEMORY.md"]:
+        return "memory"
+    if len(parts) == 2 and parts[0] == "memory" and parts[1].endswith(".md"):
+        if parts[1] == "rejected.md" and rel.startswith("seeds"):
+            return None
+        return SPECIAL.get(parts[1], "topic")
+    return None
+
+
+def line_problem(kind, line):
+    """What is wrong with one list line of a memory file of this kind, or None."""
+    if kind in ("memory", "lessons"):
+        if not MEMORY_LINE.match(line):
+            return "not a memory line: - YYYY-MM-DD <fact> [· from: <seed>]"
+        if kind == "lessons" and not LESSON_SEEN.search(line):
+            return "a lesson ends with · seen: <run>[, <run>]"
+    elif kind == "rejected":
+        if not REJECTED_LINE.match(line):
+            return "not a rejected line: - YYYY-MM-DD | <proposal> | <reason>"
+    elif kind in ("runs", "unrouted"):
+        parts = line.split(" | ")
+        if len(parts) == 4 and line.endswith(" |"):
+            parts[3] = parts[3][:-2]
+            parts.append("")
+        if len(parts) != 5:
+            return "not a run line: - <date> <time> | <task> | <outcome> | <tags> | <note>"
+        head, task, outcome, tags, note = parts
+        if not RUN_HEAD.match(head):
+            return "starts with - YYYY-MM-DD HH:MM"
+        if not NAME_RE.match(task):
+            return f"task slug {task!r}: lowercase letters, digits and hyphens"
+        if kind == "unrouted":
+            if outcome != "one-off":
+                return "an unrouted line's outcome is one-off"
+        elif task == "retro":
+            if not re.match(r"^\d+ runs?$", outcome):
+                return "a retro line's third field is <n> runs"
+        elif outcome not in OUTCOMES:
+            return f"outcome {outcome!r}: one of {', '.join(sorted(OUTCOMES))}"
+        if not TAGS.match(tags):
+            return "tags are key=value pairs separated by spaces, or -"
+        if len(note) > 140:
+            return f"the note is {len(note)} characters (budget 140)"
+    return None
+
+
+def file_problems(kind, text):
+    """[(line number or None, problem)] for a whole memory file of this kind."""
+    header, intro, max_lines, max_len = MEMORY_FILES[kind]
+    lines = text.splitlines()
+    out = []
+    if header and (not lines or lines[0] != header):
+        out.append((1, f'the first line must be "{header}"'))
+    if len(lines) > max_lines:
+        out.append((None, f"{len(lines)} lines (budget {max_lines})"))
+    if not header:
+        return out
+    for i, line in enumerate(lines[1:], 2):
+        if not line.strip() or line == intro:
+            continue
+        if max_len and len(line) > max_len:
+            out.append((i, f"{len(line)} characters (budget {max_len})"))
+        if kind != "archive":
+            p = line_problem(kind, line)
+            if p:
+                out.append((i, p))
+    return out
+
+
+def check_memory_file(root, rel, kind, rep):
+    for i, problem in file_problems(kind, read(os.path.join(root, rel))):
+        rep.err(f"{rel}:{i}" if i else rel, problem)
+
+
 def check_memory(root, reld, rep, runs=False, unrouted=False):
     """reld is "" for the root or seeds/<name>."""
     mem = os.path.join(reld, "MEMORY.md")
     mdir = os.path.join(reld, "memory")
     if not require(root, mem, rep):
         return
-    text = read(os.path.join(root, mem))
-    lines = text.splitlines()
-    if not lines or lines[0] != "# Memory":
-        rep.err(mem, 'the first line must be "# Memory"')
-    if len(lines) > 60:
-        rep.err(mem, f"{len(lines)} lines (budget 60)")
-    for i, line in enumerate(lines[1:], 2):
-        if not line.strip() or line == MEMORY_INTRO:
-            continue
-        if not MEMORY_LINE.match(line):
-            rep.err(f"{mem}:{i}", "not a memory line: - YYYY-MM-DD <fact> [· from: <seed>]")
-        if len(line) > 400:
-            rep.err(f"{mem}:{i}", f"{len(line)} characters (budget 400)")
-    named = set(re.findall(r"memory/([A-Za-z0-9._-]+\.md)", text))
-    special = {"runs.md", "unrouted.md", "archive.md"}
+    check_memory_file(root, mem, "memory", rep)
     present = set(x for x in os.listdir(os.path.join(root, mdir)) if x.endswith(".md")) \
         if os.path.isdir(os.path.join(root, mdir)) else set()
     if os.path.isdir(os.path.join(root, mdir)):
         for x in subdirs(os.path.join(root, mdir)):
             rep.err(os.path.join(mdir, x), "memory folders are flat: no subfolders")
-    for x in sorted(named - present - special):
+    linking = read(os.path.join(root, mem))
+    if "lessons.md" in present:
+        linking += read(os.path.join(root, mdir, "lessons.md"))
+    named = set(re.findall(r"memory/([A-Za-z0-9._-]+\.md)", linking))
+    for x in sorted(named - present - set(SPECIAL)):
         rep.err(mem, f"names memory/{x}, which does not exist")
-    for x in sorted(present - special):
-        if x not in named:
-            rep.err(os.path.join(mdir, x), "a topic file not linked from MEMORY.md")
-        n = len(read(os.path.join(root, mdir, x)).splitlines())
-        if n > 300:
-            rep.err(os.path.join(mdir, x), f"{n} lines (budget 300)")
-    if runs and require(root, os.path.join(mdir, "runs.md"), rep):
-        check_log(root, os.path.join(mdir, "runs.md"), "# Runs", rep, unrouted=False)
-    if unrouted and os.path.isfile(os.path.join(root, mdir, "unrouted.md")):
-        check_log(root, os.path.join(mdir, "unrouted.md"), "# Unrouted", rep, unrouted=True)
-
-
-def check_log(root, rel, header, rep, unrouted):
-    lines = read(os.path.join(root, rel)).splitlines()
-    if not lines or lines[0] != header:
-        rep.err(rel, f'the first line must be "{header}"')
-    if len(lines) > 200:
-        rep.err(rel, f"{len(lines)} lines (budget 200)")
-    for i, line in enumerate(lines[1:], 2):
-        if not line.strip():
+    for x in sorted(present):
+        rel = os.path.join(mdir, x)
+        kind = memory_kind(rel)
+        if kind is None:
+            rep.err(rel, "rejected.md lives in the root memory/ only")
             continue
-        parts = line.split(" | ")
-        where = f"{rel}:{i}"
-        if len(parts) == 4 and line.endswith(" |"):
-            parts[3] = parts[3][:-2]
-            parts.append("")
-        if len(parts) != 5:
-            rep.err(where, "not a run line: - <date> <time> | <task> | <outcome> | <tags> | <note>")
-            continue
-        head, task, outcome, tags, note = parts
-        if not RUN_HEAD.match(head):
-            rep.err(where, "starts with - YYYY-MM-DD HH:MM")
-        if not NAME_RE.match(task):
-            rep.err(where, f"task slug {task!r}: lowercase letters, digits and hyphens")
-        if unrouted:
-            if outcome != "one-off":
-                rep.err(where, "an unrouted line's outcome is one-off")
-        elif task == "retro":
-            if not re.match(r"^\d+ runs?$", outcome):
-                rep.err(where, "a retro line's third field is <n> runs")
-        elif outcome not in OUTCOMES:
-            rep.err(where, f"outcome {outcome!r}: one of {', '.join(sorted(OUTCOMES))}")
-        if not TAGS.match(tags):
-            rep.err(where, "tags are key=value pairs separated by spaces, or -")
-        if len(note) > 140:
-            rep.err(where, f"the note is {len(note)} characters (budget 140)")
+        if kind == "topic" and x not in named:
+            rep.err(rel, "a topic file not linked from MEMORY.md or memory/lessons.md")
+        check_memory_file(root, rel, kind, rep)
+    if runs:
+        require(root, os.path.join(mdir, "runs.md"), rep)
 
 
 # ---------------------------------------------------------------- seeds
@@ -480,7 +536,7 @@ def validate(root):
             rep.err(f"skills/{s}", "a mandatory shared skill is missing")
     any_disable(root, files, rep)
     check_docs(root, "docs", rep)
-    check_memory(root, "", rep, unrouted=True)
+    check_memory(root, "", rep)
     seeds = []
     for name in subdirs(os.path.join(root, "seeds")):
         s = load_seed(root, name, shared, rep)

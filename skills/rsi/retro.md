@@ -1,6 +1,6 @@
 # The retro
 
-Adapted from mattpocock's `retro`. Read first: this seed's `runs.md` since the last retro, `memory/unrouted.md`, the conversation's escalations and owner corrections, the root and seed MEMORY.md, and the sizes of everything always loaded (the router, `docs/INDEX.md`, `seeds/INDEX.md`, both MEMORY.md, this SEED.md). Read the existing docs before proposing a rule, so a finding is "the existing rule is unclear" rather than a duplicate.
+Adapted from mattpocock's `retro`. Read first: this seed's `runs.md` since the last retro, `memory/unrouted.md`, `memory/rejected.md` (never re-propose a line there without new evidence), the lessons files, the conversation's escalations and owner corrections, the root and seed MEMORY.md, and the sizes of everything always loaded (the router, `docs/INDEX.md`, `seeds/INDEX.md`, both MEMORY.md, this SEED.md). Read the existing docs before proposing a rule, so a finding is "the existing rule is unclear" rather than a duplicate.
 
 Each finding names its **evidence** (quoted run lines, unrouted lines, or an owner quote) and its **category**:
 
@@ -16,15 +16,16 @@ Each finding names its **evidence** (quoted run lines, unrouted lines, or an own
 - **Autonomy:** escalations that should have been decisions, and decisions the owner reversed.
 - **Memory hygiene:** stale, duplicated or contradicted facts, and rules hiding in memory (they move to docs).
 - **Sprawl:** repeated `unrouted.md` lines become a **new seed proposal**, handed to `skills/new-seed/ENTRY.md`, which asks the owner. Seeds unused for 30 runs of their siblings, or 60 days, are proposed for retirement; overlapping seeds for merging. Past 50 seeds, propose merges rather than more groups.
-- **Upstream:** if the root memory line about the last upstream check is over 30 days old (or missing), suggest running `sync` in the report. Never run it from here.
-- **rsi itself:** how the last retro branches fared (root memory lines `rsi proposal rejected: ...`). Repeated rejections are a finding about rsi, which may propose a root-tier change to `skills/rsi/`.
+- **Upstream:** if the garden has an `upstream` remote, say once in the report that `bash skills/sync/sync.sh status` shows whether a garden release is waiting. Never run sync from here.
+- **Lessons:** a lesson seen in 2 runs is promoted (`skills/memory/ENTRY.md`); one not seen again since the last two retros is dropped. A lesson that is really a rule becomes a doc change, staged.
+- **rsi itself:** how the last retro branches fared (`memory/rejected.md`). Repeated rejections are a finding about rsi, which may propose a root-tier change to `skills/rsi/`.
 
 ## Removal pass (mandatory)
-Every retro proposes at least one deletion or compaction, or states, with the measured sizes, that everything is within 75 % of budget.
+Every retro proposes at least one deletion or compaction, or states, with the measured sizes, that everything is under 80 % of its budget.
 
 ## Compaction
-- **MEMORY.md** over 75 % of its budget: merge duplicates, move details into topic files, move stale lines to `memory/archive.md` (`~~old line~~ · moved YYYY-MM-DD`). Written directly: it is memory.
-- **runs.md and unrouted.md:** keep the lines since the last two retro lines; delete older ones (git history keeps them, and the retro lines summarise them). Written directly.
+- **Memory files** at 80 % of their budget or more (write.py says "compaction due"; at 100 % it refuses writes): merge duplicates, move details into topic files, move stale or low-value lines to `memory/archive.md` (`~~old line~~ · moved YYYY-MM-DD`), and reorder MEMORY.md most valuable first. Written directly: it is memory. Check with `python3 skills/memory/write.py check <file>`.
+- **runs.md and unrouted.md:** keep the lines since the last two retro lines; delete older ones (git history keeps them, and the retro lines summarise them). **archive.md** and **rejected.md** at 80 %: delete their oldest lines. Written directly.
 - **Docs and SEED.md:** compaction is a behaviour change: stage it.
 
 ## Output

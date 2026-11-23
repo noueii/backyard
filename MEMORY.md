@@ -1,3 +1,3 @@
 # Memory
 
-One line per fact, newest first. Longer notes go in memory/<topic>.md.
+One line per fact, most valuable first: tools may load only the start. Longer notes go in memory/<topic>.md.

@@ -5,7 +5,7 @@
 #   upstream    fetch upstream's newest v<major>.* tag and stage it on a root-tier branch that merges it (with no
 #               origin, a garden with no commits of its own fast-forwards instead)
 #   staged      push each finished local garden/* branch and open its PR (gh pr create --fill); never merges
-#   decisions   print root memory lines for garden/* PRs that were closed without merging
+#   decisions   record garden/* PRs closed without merging in memory/rejected.md (through memory/write.py)
 #   all         the five above, stopping at the first failure
 #   status      what each step would do; changes nothing
 # Exit: 0 done, 1 refused or failed (the reason is printed), 2 usage, 3 the upstream merge needs you (conflicts).
@@ -166,11 +166,15 @@ do_decisions() {
   local t u found=0
   while IFS=$'\t' read -r t u; do
     [ -n "$u" ] || continue
-    grep -qF "$u" "$R/MEMORY.md" "$R/memory/archive.md" 2>/dev/null && continue
-    [ "$found" = 0 ] && say "decisions: add these lines to the top of MEMORY.md (skills/memory/ENTRY.md):"; found=1
-    echo "- $(date +%Y-%m-%d) rsi proposal rejected: $t ($u) · from: sync"
+    grep -qF "$u" "$R/memory/rejected.md" 2>/dev/null && continue
+    [ "$DRY" = 1 ] && { say "decisions: would record $u"; continue; }
+    python3 "$R/skills/memory/write.py" add memory/rejected.md "- $(date +%Y-%m-%d) | ${t//|/-} ($u) | closed without merging" \
+      || return 1
+    found=$((found + 1))
   done <<< "$lines"
-  [ "$found" = 0 ] && say "decisions: no newly closed garden/* PRs"; return 0
+  [ "$found" = 0 ] && say "decisions: no newly closed garden/* PRs" \
+    || say "decisions: recorded $found in memory/rejected.md: commit it (memory: rejected proposals) and run the memory step"
+  return 0
 }
 
 run() { "do_$1"; }
