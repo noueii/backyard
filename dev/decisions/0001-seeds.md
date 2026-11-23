@@ -74,7 +74,7 @@ garden/                     the user's repo (a copy of noueii/garden); the root 
 | symlinked folder | yes | yes | yes, deduped by real path | yes, deduped by real path |
 | global instructions file | `~/.claude/CLAUDE.md` | `~/.config/opencode/AGENTS.md` | `~/.pi/agent/AGENTS.md` | `~/.omp/agent/AGENTS.md` |
 
-So exactly one `SKILL.md` per installed folder is required, not just tidy.
+So exactly one `SKILL.md` per installed folder is required, not just tidy. `dev/prove-install.sh` confirms it in a temp HOME: pi, omp and opencode discover exactly one new skill, `garden`; all four send it, and no internal skill, to a fake model; a nested `SKILL.md` is ignored by Claude Code, pi and omp and registered by opencode. One more finding: omp rewrites skill descriptions with a model call and caches the result, so what omp sends is a compressed form of the description.
 
 ## 2. The spec (`spec/SPEC.md`, seeds format 1.0)
 `spec/SPEC.md` is normative; this section records the choices behind it.
