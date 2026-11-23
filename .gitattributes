@@ -1,0 +1,10 @@
+# memory files take every line from both sides when two clones append at once (sync rebases them)
+MEMORY.md merge=union
+memory/unrouted.md merge=union
+memory/archive.md merge=union
+seeds/*/MEMORY.md merge=union
+seeds/*/memory/runs.md merge=union
+seeds/*/memory/archive.md merge=union
+memory/lessons.md merge=union
+memory/rejected.md merge=union
+seeds/*/memory/lessons.md merge=union
