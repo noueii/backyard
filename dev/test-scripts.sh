@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Maintainer-only: tests the scripts that ship inside skills, in temp git repos. No network, no AI.
-#   skills/sync/sync.sh: an upstream (noueii/garden), a user's origin and two clones of it.
+#   skills/escalate/block.sh: the block, and what it refuses;
+#   skills/handoff/call.sh: the command per tool and access level (dry run; dev/prove-access.sh runs the tools);
+#   skills/handoff/check.sh: snapshot and verify in a temp repo;
+#   skills/sync/sync.sh: an upstream (noueii/garden), a user's origin and clones of it.
 # Usage: dev/test-scripts.sh
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
@@ -26,6 +29,66 @@ open(p, "w").write("\n".join(lines) + "\n")
 PY
   git -C "$1" commit -qam "memory: $2"
 }
+
+echo "block.sh"
+B="$ROOT/skills/escalate/block.sh"
+expect "prints the block" 0 bash "$B" --kind escalation --seed coder --question "Use - or _?" --why "Docs don't say." --option "-" --option "_"
+[ "$OUT" = "$(printf '<<<SEED\nkind: escalation\nseed: coder\nquestion: Use - or _?\nwhy: Docs don'"'"'t say.\noptions: ["-" (recommended), "_"]\n>>>')" ] \
+  && pass "  … exactly the fixed format" || { fail "  … not the fixed format:"; echo "$OUT" | sed 's/^/         /'; }
+expect "refuses an unknown kind" 2 bash "$B" --kind ask --seed a --question "q?" --why w
+expect "refuses an empty why" 2 bash "$B" --kind route --seed garden --question "q?" --why " "
+expect "refuses two questions" 2 bash "$B" --kind question --seed a --question "x? y?" --why w
+has "ONE question"
+expect "refuses 5 options" 2 bash "$B" --kind question --seed a --question "q?" --why w --option 1 --option 2 --option 3 --option 4 --option 5
+expect "refuses a multi-line field" 2 bash "$B" --kind question --seed a --question "$(printf 'a\nb?')" --why w
+expect "refuses a bad seed name" 2 bash "$B" --kind question --seed "Bad Name" --question "q?" --why w
+
+echo "call.sh (dry run)"
+C="$ROOT/skills/handoff/call.sh"; echo "Say ok." > "$T/prompt.md"
+dry() { GARDEN_DRY=1 bash "$C" "$@" "$T/prompt.md"; }
+for case_ in "claude read-only|--tools Read,Grep,Glob --strict-mcp-config --permission-mode dontAsk" \
+             "claude edit|--tools Read,Grep,Glob,Edit,Write --strict-mcp-config --permission-mode acceptEdits" \
+             "claude full|claude -p --settings" "pi read-only|--tools read,grep,find,ls" \
+             "pi edit|--tools read,grep,find,ls,edit,write" "omp read-only|--no-lsp --tools read,grep,glob" \
+             "omp edit|--tools read,grep,glob,edit,write" "opencode read-only|--agent garden-read-only" \
+             "opencode edit|\"*\":\"deny\",\"read\":\"allow\",\"grep\":\"allow\",\"glob\":\"allow\",\"list\":\"allow\",\"edit\":\"allow\""; do
+  args="${case_%%|*}"; want="${case_#*|}"
+  # shellcheck disable=SC2086
+  expect "$args" 0 dry $args
+  printf '%s' "$OUT" | tr -d '\\' | grep -qF -- "$want" && pass "  … has $want" || { fail "  … lacks $want:"; echo "$OUT" | sed 's/^/         /'; }
+done
+expect "claude read-only has no Bash" 0 dry claude read-only
+printf '%s' "$OUT" | grep -q Bash && fail "  … mentions Bash" || pass "  … no Bash"
+expect "refuses an unknown tool" 2 dry codex read-only
+expect "refuses an unknown access" 2 dry pi write
+
+echo "check.sh"
+K="$ROOT/skills/handoff/check.sh"; P="$T/project"
+git init -q "$P" && echo a > "$P/a.txt" && echo ignored > "$P/.gitignore" && git -C "$P" add -A && git -C "$P" commit -qm init
+echo staged > "$P/s.txt"; git -C "$P" add s.txt; idx="$(sha256sum < "$P/.git/index")"
+tok="$(bash "$K" snapshot "$P")"
+[ "$(sha256sum < "$P/.git/index")" = "$idx" ] && pass "snapshot leaves the index alone" || fail "snapshot changed the index"
+[ -z "$(git -C "$P" stash list)" ] && pass "snapshot uses no stash" || fail "snapshot used the stash"
+expect "nothing changed: read-only ok" 0 bash "$K" verify read-only "$tok" "$P"
+echo ignored > "$P/ignored"; echo "ignored" >> "$P/.git/info/exclude"
+expect "an ignored file doesn't count" 0 bash "$K" verify read-only "$tok" "$P"
+echo new > "$P/new.txt"
+expect "an untracked file: read-only violation" 1 bash "$K" verify read-only "$tok" "$P"
+has "new.txt"
+expect "an untracked file: edit ok" 0 bash "$K" verify edit "$tok" "$P"
+rm "$P/new.txt"; echo b >> "$P/a.txt"
+expect "a changed file: read-only violation" 1 bash "$K" verify read-only "$tok" "$P"
+git -C "$P" checkout -q -- a.txt
+expect "change undone: read-only ok again" 0 bash "$K" verify read-only "$tok" "$P"
+git -C "$P" branch -q side
+expect "a new branch: edit violation (only a shell can)" 1 bash "$K" verify edit "$tok" "$P"
+has "branches or tags changed"
+git -C "$P" branch -q -D side; git -C "$P" commit -qm "a commit"
+expect "a commit: edit violation" 1 bash "$K" verify edit "$tok" "$P"
+has "HEAD moved"
+expect "a commit: full is ok, and listed" 0 bash "$K" verify full "$tok" "$P"
+expect "refuses a bad token" 2 bash "$K" verify edit "nonsense" "$P"
+expect "refuses a folder without git" 2 bash "$K" snapshot "$T/home"
 
 echo "sync.sh"
 # upstream: this repo as it is on disk, tagged v1.0.0
