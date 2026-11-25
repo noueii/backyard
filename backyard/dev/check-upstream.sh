@@ -11,8 +11,8 @@ fails=0; fail() { echo "  FAIL $*"; fails=$((fails + 1)); }
 FROZEN='382384a0aafafc7895329eccc5beab12a786bbb136b34c7da99f3c3aea8294ed docs/INDEX.md
 a3a660efa9eebf365b79ced781475e76685407d7e2d744c262562543a30e5c1f seeds/INDEX.md
 ca891e96669a272521e4ddd828cb3ea116ac03a76eebad0883e5d279d462464b memory/INDEX.md
-737068817688e34cc2add2ebb7bbfcace800529e3c5f452feb65505677713c93 README.md
-bd4b3be73e6e81cf7eb0e182b7e77fa4a43d331cec4126bf0d27739a7be4ea53 AGENTS.md
+aae15ca1d116c26b2d62ba8ab559571d8daa92b219eeed2621b06b36884f5b35 README.md
+e82b405edb70c078d973459bf57f4fe86a0b1d4809db0942913e25d8511bbf4c AGENTS.md
 336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49 CLAUDE.md'
 while read -r sum path; do
   [ -f "$R/$path" ] || { fail "$path is missing"; continue; }

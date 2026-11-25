@@ -1,5 +1,7 @@
 # 0002: the framework in one folder, `garden/` (2026-11-23)
 
+**Renamed by [0005](0005-backyard.md)** (backyard 4.0.0): the standard garden is now **backyard**: the router `backyard`, the folder `backyard/`, the skills `backyard-*`, the repo noueii/backyard. This record keeps the names and paths it was decided with.
+
 Status: **accepted** (the owner's decision). **Amended by [0004](0004-skill-md.md)** (garden 3.0.0): garden's skills are `garden/skills/garden-<s>/SKILL.md`, so `SKILL.md` is no longer garden's only file of that name. Amends [0001](0001-seeds.md) §1, §7 and §8 of the spec. Release: garden **2.0.0**; `seeds-format` stays **1.0**.
 
 ## Decision

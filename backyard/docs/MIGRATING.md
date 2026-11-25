@@ -1,6 +1,32 @@
 # Migrating
 
-How to take a new major release of garden. sync stages releases of your current major on its own; a new major it only announces, so you take it by hand, once, as below.
+How to take a new major release of backyard. sync stages releases of your current major on its own; a new major it only announces, so you take it by hand, once, as below. Take majors in order, oldest first.
+
+## 3.x → 4.0.0: garden is renamed backyard
+The standard, its repo, folder and skills are now named backyard ([why](decisions/0005-backyard.md)); nothing else changes, and `seeds-format` stays 2.0. Finish or close your open `garden/*` branches first: sync 4.0.0 only sees `backyard/*`. Then take the release on one branch:
+```sh
+git remote set-url upstream https://github.com/noueii/backyard.git
+git fetch upstream --tags
+git switch -c backyard/$(date +%Y%m%d-%H%M)-upstream-v4-0-0-root
+git merge v4.0.0            # git follows the renames
+```
+| Was | Now |
+|---|---|
+| the router `garden` | `backyard` |
+| `garden/` (skills, docs, check, dev) | `backyard/` |
+| `garden/skills/garden-<s>/` (memory, escalate, handoff, sync, new-seed) | `backyard/skills/backyard-<s>/` |
+| `.github/workflows/garden.yml` | `.github/workflows/backyard.yml` |
+| `garden/*` branches, `~/.local/state/garden/` | `backyard/*`, `~/.local/state/backyard/` |
+| `GARDEN_DRY`, `GARDEN_NO_GH` | `BACKYARD_DRY`, `BACKYARD_NO_GH` |
+
+- **Seeds** listing `garden-escalate`, `garden-handoff`, `garden-sync` or `garden-new-seed` now list `backyard-*`, and text naming `garden/...` now names `backyard/...`: `grep -rnE 'garden(/|-(memory|escalate|handoff|sync|new-seed)\b)' seeds docs skills`.
+- **Your own skills** may not be named `backyard` or `backyard-*`; `garden` and `garden-*` are free.
+- **README.md, AGENTS.md, CLAUDE.md** are yours: the merge updates a placeholder you never changed; otherwise keep your text and update the names and paths in it (the new placeholders: `git show v4.0.0:AGENTS.md`).
+- **Install:** the skill's folder name must equal its name, so rename the links (the clone itself can stay where it is): `ln -s "$(readlink ~/.claude/skills/garden)" ~/.claude/skills/backyard && rm ~/.claude/skills/garden`, and the same in `~/.agents/skills/`. In your tools' global instructions, the line now names the `backyard` skill.
+- **The pre-commit hook**, if you linked it: `ln -sf ../../backyard/check/pre-commit.sh .git/hooks/pre-commit`.
+- **Memory** is history: memories that name old paths can stay. Check with `python3 backyard/check/validate.py .` and `python3 backyard/skills/backyard-memory/write.py check memory`, then commit and merge the branch like any root PR.
+
+The sections below were written before the rename and use the old names (`garden`, `garden/`, `garden-*`), which were right at the time: take them as written, before this one.
 
 ## 2.x → 3.0.0: memory as files, rsi merged into `garden-memory`, skills as `SKILL.md` (`seeds-format` 2.0)
 Memory is one file per memory, and `rsi` is part of `garden-memory` ([why](decisions/0003-memory-layout.md)). Every skill inside the garden is a standard `SKILL.md`, and garden's are named `garden-*` ([why](decisions/0004-skill-md.md)). A 2.x garden fails the 3.0.0 validator until its memory is moved, so take the release and the migration on one branch:

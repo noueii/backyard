@@ -1,5 +1,7 @@
 # 0003: memory as files, and rsi merged into `memory` (2026-11-23)
 
+**Renamed by [0005](0005-backyard.md)** (backyard 4.0.0): the standard garden is now **backyard**: the router `backyard`, the folder `backyard/`, the skills `backyard-*`, the repo noueii/backyard. This record keeps the names and paths it was decided with.
+
 Status: **accepted** (the owner's decisions). Amends [0001](0001-seeds.md) §3 (memory format), §4 (rsi), §5.1-5.2 and §13. Release: garden **3.0.0**, `seeds-format` **2.0**. In the same release, [0004](0004-skill-md.md) renamed the skill to `garden-memory` and its `ENTRY.md` to `SKILL.md`; its paths are updated, and its prose keeps the names it was decided with.
 
 ## Decision

@@ -1,5 +1,7 @@
 # 0001: seeds (2026-11-23)
 
+**Renamed by [0005](0005-backyard.md)** (backyard 4.0.0): the standard garden is now **backyard**: the router `backyard`, the folder `backyard/`, the skills `backyard-*`, the repo noueii/backyard. This record keeps the names and paths it was decided with.
+
 Status: **accepted**. The owner accepted the plan in psai's ADR 0014 ("flakes"), with the changes recorded in "What changed from psai 0014" below. This ADR is that plan, renamed and updated for a fresh repo. Nothing in it was built in psai, which is being archived.
 
 **Amended by [0002](0002-framework-folder.md)** (garden 2.0.0): garden's own files moved into one folder, `garden/`. The layout diagram below is the layout as first decided; every other path in this record is updated to the new one.

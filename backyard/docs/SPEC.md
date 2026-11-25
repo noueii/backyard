@@ -1,13 +1,13 @@
 # The seeds format 2.0
 
-This is the normative format of a garden: the repo whose root folder is the one skill your tools load. `garden/check/validate.py` enforces what can be checked; the rest is how the shared skills behave. The reasons are in [decisions/0001-seeds.md](decisions/0001-seeds.md), [decisions/0002-framework-folder.md](decisions/0002-framework-folder.md), [decisions/0003-memory-layout.md](decisions/0003-memory-layout.md) and [decisions/0004-skill-md.md](decisions/0004-skill-md.md).
+This is the normative format of a backyard: the repo whose root folder is the one skill your tools load. `backyard/check/validate.py` enforces what can be checked; the rest is how the shared skills behave. The reasons are in [decisions/0001-seeds.md](decisions/0001-seeds.md), [decisions/0002-framework-folder.md](decisions/0002-framework-folder.md), [decisions/0003-memory-layout.md](decisions/0003-memory-layout.md), [decisions/0004-skill-md.md](decisions/0004-skill-md.md) and [decisions/0005-backyard.md](decisions/0005-backyard.md).
 
 ## 1. Layout
 ```
-SKILL.md                     the router: the skill your tools load, and garden's only file at the root
-garden/                      the framework, self-contained (garden/docs/upstream-paths.txt)
-  skills/<s>/SKILL.md        garden's shared skills: garden-memory, -escalate, -handoff, -sync, -new-seed
-  docs/                      garden's own docs: README, tutorial, reference, this spec, MIGRATING, decisions/
+SKILL.md                     the router: the skill your tools load, and backyard's only file at the root
+backyard/                    the framework, self-contained (backyard/docs/upstream-paths.txt)
+  skills/<s>/SKILL.md        backyard's shared skills: backyard-memory, -escalate, -handoff, -sync, -new-seed
+  docs/                      backyard's own docs: README, tutorial, reference, this spec, MIGRATING, decisions/
   check/                     the validator and the optional pre-commit script
   dev/                       maintainer files: tests, fixtures, proofs (inert in your copy)
 skills/<s>/SKILL.md          your own shared skills (optional)
@@ -20,34 +20,34 @@ seeds/<name>/skills/<s>/SKILL.md   bundled skills
 seeds/<name>/docs/INDEX.md   the seed's docs (flat)
 seeds/<name>/memory/INDEX.md  committed/  pending/   the seed's memory (§6)
 README.md  AGENTS.md  CLAUDE.md   yours: placeholders upstream ships once and never changes
-.github/workflows/garden.yml  .gitattributes   garden's, at the root only because they work only there
+.github/workflows/backyard.yml  .gitattributes   backyard's, at the root only because they work only there
 ```
-- **The framework stays in `garden/`.** garden owns `SKILL.md`, `garden/` and the two root files above, nothing else. `garden/` holds only `skills/`, `docs/`, `check/` and `dev/`, and `garden/skills/` only garden's five skills: your content (seeds, docs, memory, your own skills) never goes inside `garden/`, and garden's never outside it. The validator checks both ways.
+- **The framework stays in `backyard/`.** backyard owns `SKILL.md`, `backyard/` and the two root files above, nothing else. `backyard/` holds only `skills/`, `docs/`, `check/` and `dev/`, and `backyard/skills/` only backyard's five skills: your content (seeds, docs, memory, your own skills) never goes inside `backyard/`, and backyard's never outside it. The validator checks both ways.
 - **Upper-case names are read by name** (`SKILL.md`, `SEED.md`, `INDEX.md`). Lower-case names are content.
-- **A `SKILL.md` only where a skill is:** the root, and one per skill folder (`garden/skills/<s>/`, `skills/<s>/`, `seeds/<name>/skills/<s>/`), each an [Agent Skills](https://agentskills.io) skill. Nowhere else, and never in another casing: case-insensitive filesystems make `skill.md` the same file. Claude Code, pi and omp list only the root skill; opencode lists the nested ones too, as skills of their own.
+- **A `SKILL.md` only where a skill is:** the root, and one per skill folder (`backyard/skills/<s>/`, `skills/<s>/`, `seeds/<name>/skills/<s>/`), each an [Agent Skills](https://agentskills.io) skill. Nowhere else, and never in another casing: case-insensitive filesystems make `skill.md` the same file. Claude Code, pi and omp list only the root skill; opencode lists the nested ones too, as skills of their own.
 - **No `.git`, worktree or clone below the root.** Stages live outside it (§8).
-- **Paths** in prose and commands are relative to the garden root, everywhere. One exception: inside a skill folder, a bare file name (no `/`) names the file beside it, which is how vendored skills already refer to their own files. Markdown links are relative to the file that holds them, as usual, and never leave the root.
+- **Paths** in prose and commands are relative to the backyard root, everywhere. One exception: inside a skill folder, a bare file name (no `/`) names the file beside it, which is how vendored skills already refer to their own files. Markdown links are relative to the file that holds them, as usual, and never leave the root.
 - **Names** (seeds, skills): lowercase letters, digits and single hyphens, at most 64 characters, equal to the folder name.
 
 ## 2. The router (`SKILL.md`)
 Frontmatter: the Agent Skills fields only (`name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`), never `disable-model-invocation`.
-- `name: garden` in every copy.
+- `name: backyard` in every copy.
 - `description`: at most 1024 characters, containing "Use when".
-- `metadata.seeds-format`: `"2.0"` (a validator accepts its own major). `metadata.version`: the garden release.
+- `metadata.seeds-format`: `"2.0"` (a validator accepts its own major). `metadata.version`: the backyard release.
 
-The body (at most 600 words) holds, in order: called seeds; read first; route; hand over; one-off; changes to the garden.
+The body (at most 600 words) holds, in order: called seeds; read first; route; hand over; one-off; changes to the backyard.
 
-## 3. Skills inside the garden (`SKILL.md`)
+## 3. Skills inside the backyard (`SKILL.md`)
 ```yaml
 ---
-name: garden-memory                   # = folder name
-description: "Part of the garden skill, used through its router and seeds, never on its own. What it does. Use when ..."   # ≤ 1024 characters, contains "Use when"
+name: backyard-memory                 # = folder name
+description: "Part of the backyard skill, used through its router and seeds, never on its own. What it does. Use when ..."   # ≤ 1024 characters, contains "Use when"
 metadata: { seeds-format: "2.0" }     # vendored skills add source: github:owner/repo/path and commit: <sha>
 ---
 ```
 - Frontmatter: the Agent Skills fields only (`name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`); never `disable-model-invocation`.
-- **Read by path:** the router and seeds read a skill's `SKILL.md` by its path when they need it. A tool that lists nested skills (opencode) may offer one on its own, so a skill is written to work only through the garden.
-- **garden's own skills** are named `garden-<s>` and their descriptions start with "Part of the garden skill", so in a tool that lists them they neither clash with other installed skills nor read as standalone. `garden` and `garden-*` are garden's names: your skills and seeds' skills never take them.
+- **Read by path:** the router and seeds read a skill's `SKILL.md` by its path when they need it. A tool that lists nested skills (opencode) may offer one on its own, so a skill is written to work only through the backyard.
+- **backyard's own skills** are named `backyard-<s>` and their descriptions start with "Part of the backyard skill", so in a tool that lists them they neither clash with other installed skills nor read as standalone. `backyard` and `backyard-*` are backyard's names: your skills and seeds' skills never take them.
 - The body is at most 800 words. Supporting files beside it are loaded by path from it, each at most 300 lines.
 - A vendored skill keeps its `SKILL.md` and its `LICENSE`, and adds `metadata.source` and `metadata.commit`.
 
@@ -57,12 +57,12 @@ metadata: { seeds-format: "2.0" }     # vendored skills add source: github:owner
 name: reviewer                        # = folder name
 when: "Reviewing a pull request or diff for correctness and style before merge."   # ≤ 200 characters
 group: code                           # optional; required on every seed once there are more than 20
-skills:                               # optional; garden-memory is implicit and never listed
-  required: [garden-escalate, installed:gh-pr-review]
-  optional: [garden-handoff]
-calls: [coder]                        # optional; needs garden-handoff in skills
+skills:                               # optional; backyard-memory is implicit and never listed
+  required: [backyard-escalate, installed:gh-pr-review]
+  optional: [backyard-handoff]
+calls: [coder]                        # optional; needs backyard-handoff in skills
 access: read-only                     # optional: read-only | edit | full (default full)
-autonomy: stop-and-record             # decide-and-record | stop-and-record; required iff garden-escalate is not in skills
+autonomy: stop-and-record             # decide-and-record | stop-and-record; required iff backyard-escalate is not in skills
 ---
 You are the reviewer. <purpose in one sentence>.
 <What you do, in the owner's words, or "Follow workflow.md".>
@@ -70,9 +70,9 @@ Done when: <...>.
 Never: <...>.
 ```
 - No other keys. The body is at most 500 words.
-- **Skill names:** a bare name is a shared skill (garden's `garden/skills/<s>/SKILL.md` or your own `skills/<s>/SKILL.md`) or a bundled one (`seeds/<name>/skills/<s>/SKILL.md`); a bundled name may not shadow a shared one. `installed:<s>` is a skill the tool discovers itself. `garden-memory` is mandatory and never listed (nor `rsi`, merged into it in 3.0.0).
+- **Skill names:** a bare name is a shared skill (backyard's `backyard/skills/<s>/SKILL.md` or your own `skills/<s>/SKILL.md`) or a bundled one (`seeds/<name>/skills/<s>/SKILL.md`); a bundled name may not shadow a shared one. `installed:<s>` is a skill the tool discovers itself. `backyard-memory` is mandatory and never listed (nor `rsi`, merged into it in 3.0.0).
 - **A missing required skill** stops the seed before it starts (escalate, or the autonomy fallback). A missing optional one is noted in the report.
-- **`access`**: `read-only` = read and search only (no edit, no shell); `edit` = also edit and write files (no shell); `full` = everything. handoff enforces it when the seed is called (`garden/skills/garden-handoff/SKILL.md`). At depth 0 it is an instruction the seed follows. A seed whose access is not `full` can't be passed to, only called.
+- **`access`**: `read-only` = read and search only (no edit, no shell); `edit` = also edit and write files (no shell); `full` = everything. handoff enforces it when the seed is called (`backyard/skills/backyard-handoff/SKILL.md`). At depth 0 it is an instruction the seed follows. A seed whose access is not `full` can't be passed to, only called.
 - **`workflow.md`** (optional, at most 800 words, free-form). SEED.md links it. Every `seed:<name>` it writes in backticks must exist and be in `calls`.
 
 ## 5. Indexes
@@ -96,7 +96,7 @@ Never: <...>.
 - A seed's doc with the same file name replaces the root one; on a clash in content the seed's text wins.
 
 ## 6. Memory
-Every memory write goes through `garden/skills/garden-memory/write.py`, which enforces this section and §7. The memory skill (`garden/skills/garden-memory/SKILL.md`) says when to write: an owner correction or statement, a failure, a surprise. A routine run writes nothing.
+Every memory write goes through `backyard/skills/backyard-memory/write.py`, which enforces this section and §7. The memory skill (`backyard/skills/backyard-memory/SKILL.md`) says when to write: an owner correction or statement, a failure, a surprise. A routine run writes nothing.
 
 **A memory folder** is `memory/` (shared) or `seeds/<name>/memory/` (one seed's), and holds only:
 ```
@@ -142,10 +142,10 @@ Proposals the owner declined. Read before proposing a change; never re-propose o
 - 2026-11-23 | seeds(reviewer): run the linter first | the owner prefers CI to do it
 ```
 
-**Retros** are due when a pending memory is seen by a second task, when a memory budget passes 80 %, or when the owner asks (`garden/skills/garden-memory/retro.md`). A retro commits memory as `memory: retro <seed>`, so the next one finds it in git history; a seed's use is read from the git history of its folder.
+**Retros** are due when a pending memory is seen by a second task, when a memory budget passes 80 %, or when the owner asks (`backyard/skills/backyard-memory/retro.md`). A retro commits memory as `memory: retro <seed>`, so the next one finds it in git history; a seed's use is read from the git history of its folder.
 
 ## 7. Budgets
-Hard limits. The validator (in CI, and in the optional `garden/check/pre-commit.sh`) fails anything over its budget. For memory, **compaction is due at 80 %** (write.py says so, and a retro is due), and **at 100 % a write fails** (write.py refuses it; nothing is truncated), so the retro compacts or removes first.
+Hard limits. The validator (in CI, and in the optional `backyard/check/pre-commit.sh`) fails anything over its budget. For memory, **compaction is due at 80 %** (write.py says so, and a retro is due), and **at 100 % a write fails** (write.py refuses it; nothing is truncated), so the retro compacts or removes first.
 
 | What | Budget |
 |---|---|
@@ -162,10 +162,10 @@ Hard limits. The validator (in CI, and in the optional `garden/check/pre-commit.
 | `memory/rejected.md` | ≤ 100 lines, each ≤ 400 characters |
 
 ## 8. Git, tiers and the stage
-- **Memory paths:** `memory/**`, `seeds/*/memory/**`. Written directly in the live clone and committed locally (`memory: <task>`). Never staged, never pushed except by `garden-sync`.
-- **Root tier:** the paths in `garden/docs/upstream-paths.txt`. **Seeds tier:** everything else that is not memory (`seeds/`, `docs/`, your `skills/`, your root files). Behaviour changes are made only in a stage worktree, never in the live clone.
-- **The stage:** `${XDG_STATE_HOME:-$HOME/.local/state}/garden/<repo>/stage/<YYYYMMDD-HHMM>-<task>-<tier>`, on branch `garden/<YYYYMMDD-HHMM>-<task>-<tier>`, outside the repo and every skills dir.
-- **Pushes and PRs** happen only in `garden-sync`, which runs only when a seed's text says so or the owner asks. Nothing in a garden merges a PR.
+- **Memory paths:** `memory/**`, `seeds/*/memory/**`. Written directly in the live clone and committed locally (`memory: <task>`). Never staged, never pushed except by `backyard-sync`.
+- **Root tier:** the paths in `backyard/docs/upstream-paths.txt`. **Seeds tier:** everything else that is not memory (`seeds/`, `docs/`, your `skills/`, your root files). Behaviour changes are made only in a stage worktree, never in the live clone.
+- **The stage:** `${XDG_STATE_HOME:-$HOME/.local/state}/backyard/<repo>/stage/<YYYYMMDD-HHMM>-<task>-<tier>`, on branch `backyard/<YYYYMMDD-HHMM>-<task>-<tier>`, outside the repo and every skills dir.
+- **Pushes and PRs** happen only in `backyard-sync`, which runs only when a seed's text says so or the owner asks. Nothing in a backyard merges a PR.
 - `.gitattributes` sets `merge=union` on the line-list memory files (`memory/INDEX.md`, `seeds/*/memory/INDEX.md`, `memory/rejected.md`). Memories are one file each and need none.
 
 ## 9. What loads when
@@ -173,10 +173,10 @@ Hard limits. The validator (in CI, and in the optional `garden/check/pre-commit.
 |---|---|
 | Session start | the router's name and description (opencode also lists each nested skill's) |
 | Any task | the router body, `docs/INDEX.md`, `seeds/INDEX.md` |
-| Hand over to seed X | `garden/skills/garden-memory/SKILL.md`; root and X's `memory/INDEX.md`; X's `docs/INDEX.md`; X's SEED.md; X's required skills |
+| Hand over to seed X | `backyard/skills/backyard-memory/SKILL.md`; root and X's `memory/INDEX.md`; X's `docs/INDEX.md`; X's SEED.md; X's required skills |
 | During work | the docs and committed memories whose "read when" fits; optional skills when used |
 | Called seed | the same, in a fresh sub-agent or session; the caller loads nothing of it |
-| End of a task | `garden/skills/garden-memory/retro.md` only when a retro is due; `garden/skills/garden-memory/stage.md` only when something was staged; `garden/skills/garden-sync/SKILL.md` only where the seed's text says to sync |
+| End of a task | `backyard/skills/backyard-memory/retro.md` only when a retro is due; `backyard/skills/backyard-memory/stage.md` only when something was staged; `backyard/skills/backyard-sync/SKILL.md` only where the seed's text says to sync |
 
 ## 10. Versions
-`metadata.version` follows semver and upstream tags releases `v<version>`. A new major of `seeds-format`, or of `version` (a change to garden's paths, such as 2.0.0's `garden/` folder), ships a section in `garden/docs/MIGRATING.md`. A new `seeds-format` major always comes with a new `version` major (3.0.0 brought `seeds-format` 2.0), because sync stages releases of the current major on its own and only announces a new one.
+`metadata.version` follows semver and upstream tags releases `v<version>`. A new major of `seeds-format`, or of `version` (a change to backyard's paths or names, such as 2.0.0's framework folder or 4.0.0's rename from garden), ships a section in `backyard/docs/MIGRATING.md`. A new `seeds-format` major always comes with a new `version` major (3.0.0 brought `seeds-format` 2.0), because sync stages releases of the current major on its own and only announces a new one.

@@ -1,5 +1,7 @@
 # 0004: skills inside the garden are standard `SKILL.md` files (2026-11-23)
 
+**Renamed by [0005](0005-backyard.md)** (backyard 4.0.0): the standard garden is now **backyard**: the router `backyard`, the folder `backyard/`, the skills `backyard-*`, the repo noueii/backyard. This record keeps the names and paths it was decided with.
+
 Status: **accepted** (the owner's decision). Amends [0001](0001-seeds.md) §1-2 and [0002](0002-framework-folder.md). Release: garden **3.0.0** (with [0003](0003-memory-layout.md)), `seeds-format` **2.0**.
 
 ## Decision
