@@ -1,3 +1,3 @@
-# expect: docs/: garden owns only
+# expect: docs/: backyard owns only
 . "$FIXTURES/good-seeds.sh"
-printf 'docs/\n' >> garden/docs/upstream-paths.txt
+printf 'docs/\n' >> backyard/docs/upstream-paths.txt

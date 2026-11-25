@@ -1,3 +1,3 @@
-# expect: your own content (seeds, docs indexes, memory) never goes inside garden/
+# expect: your own content (seeds, docs indexes, memory) never goes inside backyard/
 . "$FIXTURES/good-seeds.sh"
-mkdir -p garden/dev/seeds/x && printf 'x\n' > garden/dev/seeds/x/notes.md
+mkdir -p backyard/dev/seeds/x && printf 'x\n' > backyard/dev/seeds/x/notes.md

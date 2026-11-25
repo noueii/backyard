@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Maintainer-only, for noueii/garden itself: the placeholders of user-owned paths are frozen, so an upstream
+# Maintainer-only, for noueii/backyard itself: the placeholders of user-owned paths are frozen, so an upstream
 # release never touches a user's docs, seeds, memory or root files. Checks that they are unchanged (by hash), that
-# upstream ships no seeds, docs, memory or own skills, and that every other file it ships is garden-owned
-# (garden/docs/upstream-paths.txt: SKILL.md, garden/ and the justified root exceptions). A user's garden never runs this.
-# Usage: garden/dev/check-upstream.sh [root]
+# upstream ships no seeds, docs, memory or own skills, and that every other file it ships is backyard-owned
+# (backyard/docs/upstream-paths.txt: SKILL.md, backyard/ and the justified root exceptions). A user's backyard never runs this.
+# Usage: backyard/dev/check-upstream.sh [root]
 set -uo pipefail
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
 R="${1:-$(cd "$(dirname "$0")/../.." && pwd -P)}"
@@ -22,9 +22,9 @@ for d in docs seeds memory; do
   extra="$(cd "$R/$d" && ls -A | grep -vxE 'INDEX.md|\.gitkeep')"
   [ -z "$extra" ] || fail "$d/ ships more than its placeholder: $(echo $extra)"
 done
-[ ! -e "$R/skills" ] || fail "skills/ is the owner's own shared skills: upstream ships none (garden's are in garden/skills/)"
-# Every shipped file is a frozen placeholder or garden-owned: nothing of garden's is left beside the owner's content.
-owned="$(grep -v '^#' "$R/garden/docs/upstream-paths.txt" | grep -v '^$')"
+[ ! -e "$R/skills" ] || fail "skills/ is the owner's own shared skills: upstream ships none (backyard's are in backyard/skills/)"
+# Every shipped file is a frozen placeholder or backyard-owned: nothing of backyard's is left beside the owner's content.
+owned="$(grep -v '^#' "$R/backyard/docs/upstream-paths.txt" | grep -v '^$')"
 placeholders="$(printf '%s\n' "$FROZEN" | cut -d' ' -f2)"
 if git -C "$R" rev-parse --show-toplevel >/dev/null 2>&1; then
   shipped="$(git -C "$R" ls-files -co --exclude-standard)"
@@ -38,6 +38,6 @@ while IFS= read -r f; do
   while IFS= read -r o; do
     case "$o" in */) case "$f" in "$o"*) ok=1 ;; esac ;; *) [ "$f" = "$o" ] && ok=1 ;; esac
   done <<< "$owned"
-  [ "$ok" = 1 ] || fail "$f is neither garden-owned (upstream-paths.txt) nor a frozen placeholder: move it into garden/"
+  [ "$ok" = 1 ] || fail "$f is neither backyard-owned (upstream-paths.txt) nor a frozen placeholder: move it into backyard/"
 done <<< "$shipped"
 if [ "$fails" = 0 ]; then echo "check-upstream: ok"; else echo "check-upstream: $fails failed"; exit 1; fi

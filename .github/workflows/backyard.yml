@@ -1,5 +1,5 @@
-# Structural checks only: no AI, no secrets. Runs in noueii/garden and in every user's garden.
-name: garden
+# Structural checks only: no AI, no secrets. Runs in noueii/backyard and in every user's backyard.
+name: backyard
 on:
   push:
   pull_request:
@@ -9,12 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install pyyaml
-      - name: validate the garden
-        run: python3 garden/check/validate.py .
-      # The rest only runs in noueii/garden itself (a user's garden has its own seeds, docs and memory).
+      - name: validate the backyard
+        run: python3 backyard/check/validate.py .
+      # The rest only runs in noueii/backyard itself (a user's backyard has its own seeds, docs and memory).
       - name: maintainer checks (upstream only)
-        if: github.repository == 'noueii/garden'
+        if: github.repository == 'noueii/backyard'
         run: |
-          bash garden/dev/check-upstream.sh
-          bash garden/dev/test-validate.sh
-          bash garden/dev/test-scripts.sh
+          bash backyard/dev/check-upstream.sh
+          bash backyard/dev/test-validate.sh
+          bash backyard/dev/test-scripts.sh

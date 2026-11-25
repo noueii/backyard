@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # Maintainer-only: tests the scripts that ship inside skills, in temp git repos. No network, no AI.
-#   garden/skills/garden-memory/write.py: new, seen, promote, remove, reject and check; the scan, the gate and the budgets;
-#   garden/skills/garden-escalate/block.sh: the block, and what it refuses;
-#   garden/skills/garden-handoff/call.sh: the command per tool and access level (dry run; garden/dev/prove-access.sh runs the tools);
-#   garden/skills/garden-handoff/check.sh: snapshot and verify in a temp repo;
-#   garden/skills/garden-sync/sync.sh: an upstream (noueii/garden), a user's origin and clones of it.
-# Usage: garden/dev/test-scripts.sh
+#   backyard/skills/backyard-memory/write.py: new, seen, promote, remove, reject and check; the scan, the gate and the budgets;
+#   backyard/skills/backyard-escalate/block.sh: the block, and what it refuses;
+#   backyard/skills/backyard-handoff/call.sh: the command per tool and access level (dry run; backyard/dev/prove-access.sh runs the tools);
+#   backyard/skills/backyard-handoff/check.sh: snapshot and verify in a temp repo;
+#   backyard/skills/backyard-sync/sync.sh: an upstream (noueii/backyard), a user's origin and clones of it.
+# Usage: backyard/dev/test-scripts.sh
 set -uo pipefail
 # Ignore a repo chosen by the caller's environment (git sets these in hooks and `rebase -x`): every git call
 # here names its repo explicitly.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
 ROOT="$(cd "$(dirname "$0")/../.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
-export HOME="$T/home" XDG_STATE_HOME="$T/state" GARDEN_NO_GH=1 GIT_CONFIG_NOSYSTEM=1
+export HOME="$T/home" XDG_STATE_HOME="$T/state" BACKYARD_NO_GH=1 GIT_CONFIG_NOSYSTEM=1
 export GIT_AUTHOR_NAME=you GIT_AUTHOR_EMAIL=you@example.com GIT_COMMITTER_NAME=you GIT_COMMITTER_EMAIL=you@example.com
 mkdir -p "$HOME"; git config --global init.defaultBranch main; git config --global advice.detachedHead false
 fails=0; pass() { echo "  ok   $*"; }; fail() { echo "  FAIL $*"; fails=$((fails + 1)); }
@@ -24,16 +24,16 @@ expect() { # <description> <expected exit> <command...>: runs it, keeps its outp
 has() { printf '%s' "$OUT" | grep -qF -- "$1" && pass "  … says: $1" || { fail "  … should say: $1"; echo "$OUT" | sed 's/^/         /'; }; }
 memline() { # <clone> <text>: an owner memory through write.py (a committed file and its INDEX.md line), committed
   local d; d="$(printf '%s' "$2" | tr -cs 'a-z0-9' '-' | sed 's/^-*//; s/-*$//')"
-  echo "$2." | python3 "$1/garden/skills/garden-memory/write.py" new memory "owner-$d" --type fact --source "owner: \"$2\"" \
+  echo "$2." | python3 "$1/backyard/skills/backyard-memory/write.py" new memory "owner-$d" --type fact --source "owner: \"$2\"" \
     --owner --when "$2 matters" >/dev/null
   git -C "$1" add -A memory && git -C "$1" commit -qm "memory: $2"
 }
 
 echo "write.py"
-G="$T/wgarden"; mkdir -p "$G"
+G="$T/wbackyard"; mkdir -p "$G"
 (cd "$ROOT" && git ls-files -co --exclude-standard | while IFS= read -r f; do [ -e "$f" ] && printf '%s\0' "$f"; done \
   | tar --null -T - -cf -) | (cd "$G" && tar -xf -)
-W() { python3 "$G/garden/skills/garden-memory/write.py" "$@"; }
+W() { python3 "$G/backyard/skills/backyard-memory/write.py" "$@"; }
 Win() { local body="$1"; shift; printf '%s\n' "$body" | W "$@"; }
 mkdir -p "$G/seeds/coder/memory"; printf '# Memory\n' > "$G/seeds/coder/memory/INDEX.md"
 P="memory/pending/2026-11-23-api-tests-need-make-db.md"
@@ -78,7 +78,7 @@ expect "a malformed rejected line is refused" 1 W reject "no pipes"
 expect "check: the folder is valid" 0 W check memory
 has "committed: 2/50"
 rm -r "$G/seeds/coder"
-expect "the validator agrees" 0 python3 "$G/garden/check/validate.py" "$G"
+expect "the validator agrees" 0 python3 "$G/backyard/check/validate.py" "$G"
 expect "remove: a committed memory and its INDEX line" 0 W remove "$C"
 ! grep -q make-db "$G/memory/INDEX.md" && [ ! -f "$G/$C" ] && pass "  … both gone" || fail "  … something is left"
 for i in $(seq 1 23); do Win "Pending $i." new memory "pending-lesson-number-$i" --type lesson --source "task-$i" --seen "task-$i" >/dev/null; done
@@ -92,17 +92,17 @@ has "BUDGET FULL"
 expect "check: a full folder passes at exactly its budget" 0 W check memory
 printf -- '---\ntype: lesson\ndate: 2026-11-23\nsource: x\nseen: [x]\n---\nOver.\n' > "$G/memory/pending/2026-11-23-pending-over-budget.md"
 expect "check: over budget fails" 1 W check memory
-expect "the validator fails it too" 1 python3 "$G/garden/check/validate.py" "$G"
+expect "the validator fails it too" 1 python3 "$G/backyard/check/validate.py" "$G"
 has "(budget 30)"
-expect "the pre-commit script fails it too" 1 sh -c "cd '$G' && bash garden/check/pre-commit.sh"
+expect "the pre-commit script fails it too" 1 sh -c "cd '$G' && bash backyard/check/pre-commit.sh"
 
 echo "block.sh"
-B="$ROOT/garden/skills/garden-escalate/block.sh"
+B="$ROOT/backyard/skills/backyard-escalate/block.sh"
 expect "prints the block" 0 bash "$B" --kind escalation --seed coder --question "Use - or _?" --why "Docs don't say." --option "-" --option "_"
 [ "$OUT" = "$(printf '<<<SEED\nkind: escalation\nseed: coder\nquestion: Use - or _?\nwhy: Docs don'"'"'t say.\noptions: ["-" (recommended), "_"]\n>>>')" ] \
   && pass "  … exactly the fixed format" || { fail "  … not the fixed format:"; echo "$OUT" | sed 's/^/         /'; }
 expect "refuses an unknown kind" 2 bash "$B" --kind ask --seed a --question "q?" --why w
-expect "refuses an empty why" 2 bash "$B" --kind route --seed garden --question "q?" --why " "
+expect "refuses an empty why" 2 bash "$B" --kind route --seed backyard --question "q?" --why " "
 expect "refuses two questions" 2 bash "$B" --kind question --seed a --question "x? y?" --why w
 has "ONE question"
 expect "refuses 5 options" 2 bash "$B" --kind question --seed a --question "q?" --why w --option 1 --option 2 --option 3 --option 4 --option 5
@@ -110,13 +110,13 @@ expect "refuses a multi-line field" 2 bash "$B" --kind question --seed a --quest
 expect "refuses a bad seed name" 2 bash "$B" --kind question --seed "Bad Name" --question "q?" --why w
 
 echo "call.sh (dry run)"
-C="$ROOT/garden/skills/garden-handoff/call.sh"; echo "Say ok." > "$T/prompt.md"
-dry() { GARDEN_DRY=1 bash "$C" "$@" "$T/prompt.md"; }
+C="$ROOT/backyard/skills/backyard-handoff/call.sh"; echo "Say ok." > "$T/prompt.md"
+dry() { BACKYARD_DRY=1 bash "$C" "$@" "$T/prompt.md"; }
 for case_ in "claude read-only|--tools Read,Grep,Glob --strict-mcp-config --permission-mode dontAsk" \
              "claude edit|--tools Read,Grep,Glob,Edit,Write --strict-mcp-config --permission-mode acceptEdits" \
              "claude full|claude -p --settings" "pi read-only|--tools read,grep,find,ls" \
              "pi edit|--tools read,grep,find,ls,edit,write" "omp read-only|--no-lsp --tools read,grep,glob" \
-             "omp edit|--tools read,grep,glob,edit,write" "opencode read-only|--agent garden-read-only" \
+             "omp edit|--tools read,grep,glob,edit,write" "opencode read-only|--agent backyard-read-only" \
              "opencode edit|\"*\":\"deny\",\"read\":\"allow\",\"grep\":\"allow\",\"glob\":\"allow\",\"list\":\"allow\",\"edit\":\"allow\""; do
   args="${case_%%|*}"; want="${case_#*|}"
   # shellcheck disable=SC2086
@@ -129,7 +129,7 @@ expect "refuses an unknown tool" 2 dry codex read-only
 expect "refuses an unknown access" 2 dry pi write
 
 echo "check.sh"
-K="$ROOT/garden/skills/garden-handoff/check.sh"; P="$T/project"
+K="$ROOT/backyard/skills/backyard-handoff/check.sh"; P="$T/project"
 git init -q "$P" && echo a > "$P/a.txt" && echo ignored > "$P/.gitignore" && git -C "$P" add -A && git -C "$P" commit -qm init
 echo staged > "$P/s.txt"; git -C "$P" add s.txt; idx="$(sha256sum < "$P/.git/index")"
 tok="$(bash "$K" snapshot "$P")"
@@ -161,16 +161,16 @@ echo "sync.sh"
 mkdir -p "$T/up"
 (cd "$ROOT" && git ls-files -co --exclude-standard | while IFS= read -r f; do [ -e "$f" ] && printf '%s\0' "$f"; done \
   | tar --null -T - -cf -) | (cd "$T/up" && tar -xf -)
-git -C "$T/up" init -q && git -C "$T/up" add -A && git -C "$T/up" commit -qm "garden 3.0.0" && git -C "$T/up" tag v3.0.0
+git -C "$T/up" init -q && git -C "$T/up" add -A && git -C "$T/up" commit -qm "backyard 3.0.0" && git -C "$T/up" tag v3.0.0
 git clone -q --bare "$T/up" "$T/up.git"
-# the user's garden: a copy of upstream with its own (bare) origin
+# the user's backyard: a copy of upstream with its own (bare) origin
 git clone -q "$T/up.git" "$T/g" && git -C "$T/g" remote rename origin upstream
 git init -q --bare "$T/origin.git" && git -C "$T/g" remote add origin "$T/origin.git" && git -C "$T/g" push -q -u origin main
 git -C "$T/origin.git" symbolic-ref HEAD refs/heads/main
 git clone -q "$T/origin.git" "$T/g2"
-S="$T/g/garden/skills/garden-sync/sync.sh"; S2="$T/g2/garden/skills/garden-sync/sync.sh"
+S="$T/g/backyard/skills/backyard-sync/sync.sh"; S2="$T/g2/backyard/skills/backyard-sync/sync.sh"
 
-expect "status on a fresh garden" 0 bash "$S" status
+expect "status on a fresh backyard" 0 bash "$S" status
 has "pull: up to date"
 expect "an inherited GIT_DIR is ignored" 0 env GIT_DIR="$T/up.git" bash "$S" status
 has "pull: up to date"
@@ -190,7 +190,7 @@ expect "pull: replays local memory commits onto origin" 0 bash "$S2" pull
 has "replayed 1 local memory commit(s)"
 grep -q "owner-fact-from-g2" "$T/g2/memory/INDEX.md" && grep -q "owner-fact-from-g\.md" "$T/g2/memory/INDEX.md" \
   && pass "  … memory/INDEX.md keeps both lines (merge=union)" || fail "  … memory/INDEX.md lost a line"
-python3 "$T/g2/garden/check/validate.py" "$T/g2" >/dev/null && pass "  … and the garden is valid" || fail "  … the garden is invalid"
+python3 "$T/g2/backyard/check/validate.py" "$T/g2" >/dev/null && pass "  … and the backyard is valid" || fail "  … the backyard is invalid"
 [ "$(git -C "$T/g2" rev-list --merges --count HEAD)" = 0 ] && pass "  … no merge commit" || fail "  … made a merge commit"
 expect "memory: pushes the replayed commit" 0 bash "$S2" memory
 
@@ -206,36 +206,36 @@ expect "pull: refuses with uncommitted changes" 1 bash "$S" pull
 has "commit memory first"
 git -C "$T/g" checkout -q -- memory/INDEX.md
 
-git -C "$T/g" branch -q garden/20261123-1200-fix-seeds
-git -C "$T/g" worktree add -q "$T/wt" garden/20261123-1200-fix-seeds
+git -C "$T/g" branch -q backyard/20261123-1200-fix-seeds
+git -C "$T/g" worktree add -q "$T/wt" backyard/20261123-1200-fix-seeds
 echo "# Style" > "$T/wt/docs/style.md"; git -C "$T/wt" add -A; git -C "$T/wt" commit -qm "seeds(x): add a style doc"
 expect "staged: skips a branch whose stage is still open" 0 bash "$S" staged
-has "no finished garden/* branches"
+has "no finished backyard/* branches"
 git -C "$T/g" worktree remove "$T/wt"
 expect "staged: pushes a finished branch (no gh)" 0 bash "$S" staged
-has "pushed garden/20261123-1200-fix-seeds"
-has "open the PR for garden/20261123-1200-fix-seeds by hand"
-git -C "$T/origin.git" rev-parse -q --verify refs/heads/garden/20261123-1200-fix-seeds >/dev/null \
+has "pushed backyard/20261123-1200-fix-seeds"
+has "open the PR for backyard/20261123-1200-fix-seeds by hand"
+git -C "$T/origin.git" rev-parse -q --verify refs/heads/backyard/20261123-1200-fix-seeds >/dev/null \
   && pass "  … origin has the branch" || fail "  … origin lacks the branch"
 expect "staged: a second run changes nothing" 0 bash "$S" staged
 has "open the PR for"
 
 expect "upstream: up to date" 0 bash "$S" upstream
 has "up to date with v3.0.0"
-echo "release note" >> "$T/up/garden/docs/README.md"; git -C "$T/up" commit -qam "readme: release note"; git -C "$T/up" tag v3.0.1
+echo "release note" >> "$T/up/backyard/docs/README.md"; git -C "$T/up" commit -qam "readme: release note"; git -C "$T/up" tag v3.0.1
 git -C "$T/up" push -q "$T/up.git" main --tags
 before="$(git -C "$T/g" rev-parse HEAD)"
 expect "upstream: stages a release on a root branch" 0 bash "$S" upstream
-has "staged v3.0.1 on garden/"
-b="$(git -C "$T/g" for-each-ref --format='%(refname:short)' 'refs/heads/garden/*upstream*')"
+has "staged v3.0.1 on backyard/"
+b="$(git -C "$T/g" for-each-ref --format='%(refname:short)' 'refs/heads/backyard/*upstream*')"
 [ "$(git -C "$T/g" rev-parse HEAD)" = "$before" ] && pass "  … the default branch is untouched" || fail "  … the default branch moved"
 git -C "$T/g" merge-base --is-ancestor v3.0.1 "$b" && pass "  … $b contains v3.0.1" || fail "  … the branch lacks v3.0.1"
-[ "$(git -C "$T/g" log -1 --format=%s "$b")" = "root: garden v3.0.1" ] && pass "  … titled root: garden v3.0.1" || fail "  … wrong title"
+[ "$(git -C "$T/g" log -1 --format=%s "$b")" = "root: backyard v3.0.1" ] && pass "  … titled root: backyard v3.0.1" || fail "  … wrong title"
 expect "upstream: a second run doesn't stage it again" 0 bash "$S" upstream
 has "already has a branch"
 
-sed -i 's/^# garden$/# garden (mine)/' "$T/g/SKILL.md"; git -C "$T/g" commit -qam "root: my title"
-sed -i 's/^# garden$/# garden (upstream)/' "$T/up/SKILL.md"; git -C "$T/up" commit -qam "router: new title"; git -C "$T/up" tag v3.0.2
+sed -i 's/^# backyard$/# backyard (mine)/' "$T/g/SKILL.md"; git -C "$T/g" commit -qam "root: my title"
+sed -i 's/^# backyard$/# backyard (upstream)/' "$T/up/SKILL.md"; git -C "$T/up" commit -qam "router: new title"; git -C "$T/up" tag v3.0.2
 git -C "$T/up" push -q "$T/up.git" main --tags
 expect "upstream: a conflict stops with exit 3" 3 bash "$S" upstream
 has "SKILL.md"

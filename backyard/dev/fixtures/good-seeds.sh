@@ -1,7 +1,7 @@
 # expect: ok
-# A small, valid garden: two seeds that compose (task-manager calls reviewer through garden-handoff, with a workflow.md),
+# A small, valid backyard: two seeds that compose (task-manager calls reviewer through backyard-handoff, with a workflow.md),
 # a bundled skill, a vendored skill, docs on both levels, and memory: committed, pending and rejected, shared and per seed. Other fixtures source
-# this file and then break one thing. Runs in a temp copy of the repo (garden/dev/test-validate.sh).
+# this file and then break one thing. Runs in a temp copy of the repo (backyard/dev/test-validate.sh).
 set -e
 mkdir -p seeds/reviewer/docs seeds/reviewer/memory/committed seeds/task-manager/docs seeds/task-manager/memory/committed \
   seeds/task-manager/memory/pending seeds/task-manager/skills/plan-format seeds/reviewer/skills/tdd memory/committed memory/pending docs
@@ -47,7 +47,7 @@ cat > seeds/task-manager/SEED.md <<'EOF'
 name: task-manager
 when: "Taking a feature or fix from request to reviewed change: plans, implements, then gets it reviewed."
 skills:
-  required: [garden-escalate, garden-handoff, plan-format]
+  required: [backyard-escalate, backyard-handoff, plan-format]
 calls: [reviewer]
 ---
 You are the task manager. Follow [workflow.md](workflow.md).
@@ -81,7 +81,7 @@ printf '# Docs\n\n- [testing.md](testing.md): read when writing or changing test
 printf '# Testing\n\nName tests after the behaviour.\n' > docs/testing.md
 printf '# Memory\n\n%s\n' "$INTRO" > memory/INDEX.md
 mem memory/committed/2026-11-23-owner-uses-two-wsl-distros.md fact 'owner: "I work in two WSL distros, work and personal"' - \
-  'The owner works in two WSL distros, work and personal: each has its own garden.'
+  'The owner works in two WSL distros, work and personal: each has its own backyard.'
 idx memory 2026-11-23-owner-uses-two-wsl-distros.md 'setting up tools or paths'
 mem memory/pending/2026-11-23-no-seed-for-git-chores.md lesson 'rename-branch: a git chore no seed fit' rename-branch \
   'A git chore (renaming a branch) had no seed; a second one would make a chores seed worth proposing.'

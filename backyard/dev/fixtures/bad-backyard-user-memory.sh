@@ -1,3 +1,3 @@
-# expect: your own content (seeds, docs indexes, memory) never goes inside garden/
+# expect: your own content (seeds, docs indexes, memory) never goes inside backyard/
 . "$FIXTURES/good-seeds.sh"
-printf '# Memory\n' > garden/skills/garden-memory/INDEX.md
+printf '# Memory\n' > backyard/skills/backyard-memory/INDEX.md

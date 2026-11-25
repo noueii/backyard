@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Maintainer-only: proves what garden/skills/garden-handoff/call.sh really enforces per tool and access level. No AI runs.
+# Maintainer-only: proves what backyard/skills/backyard-handoff/call.sh really enforces per tool and access level. No AI runs.
 # For each installed tool (claude, pi, omp, opencode) and each level (read-only, edit, full), in a temp HOME and
-# against garden/dev/fake-model.py, it runs call.sh three times. The fake model answers the first turn with one tool call:
+# against backyard/dev/fake-model.py, it runs call.sh three times. The fake model answers the first turn with one tool call:
 #   - "offered": a harmless turn; the request's tool list is compared with the level's allowlist;
 #   - "write":   a call to the tool's write tool, creating a file;
 #   - "shell":   a call to the tool's shell tool, running `touch`;
 # A call to a tool that the request did not offer is still made: the tool must refuse it.
 #   - "read":    a call to the read tool on a file OUTSIDE the working directory (a called seed reads its SEED.md
-#                from the garden while it works in a project): its content must reach the model;
+#                from the backyard while it works in a project): its content must reach the model;
 # Then it checks the file system: what the level forbids must not exist. Tools not installed are skipped.
-# Usage: garden/dev/prove-access.sh [--keep] [tool...]
+# Usage: backyard/dev/prove-access.sh [--keep] [tool...]
 set -uo pipefail
 # Ignore a repo chosen by the caller's environment (git sets these in hooks and `rebase -x`): every git call
 # here names its repo explicitly.
@@ -29,12 +29,12 @@ unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN OPENCODE_CO
   CLAUDECODE CLAUDE_CODE_ENTRYPOINT
 mkdir -p "$HOME/.pi/agent" "$HOME/.omp/agent" "$XDG_CONFIG_HOME/opencode" "$T/req" "$T/work"
 python3 -c "import socket,sys; s=socket.socket(); sys.exit(s.connect_ex(('127.0.0.1', $MP)) == 0)" || { echo "port $MP is in use"; exit 1; }
-python3 "$ROOT/garden/dev/fake-model.py" "$T/req" --port $MP & PIDS+=($!)
+python3 "$ROOT/backyard/dev/fake-model.py" "$T/req" --port $MP & PIDS+=($!)
 sleep 1
-. "$ROOT/garden/dev/fake-providers.sh" "$MP"
+. "$ROOT/backyard/dev/fake-providers.sh" "$MP"
 [ "$HOME" != "$real_home" ] || exit 1
-# call.sh runs from a garden copy, so the garden it lets the called seed read is $T/garden, outside each work dir
-mkdir -p "$T/garden/garden/skills/garden-handoff" && cp "$ROOT/garden/skills/garden-handoff/call.sh" "$T/garden/garden/skills/garden-handoff/"
+# call.sh runs from a backyard copy, so the backyard it lets the called seed read is $T/backyard, outside each work dir
+mkdir -p "$T/backyard/backyard/skills/backyard-handoff" && cp "$ROOT/backyard/skills/backyard-handoff/call.sh" "$T/backyard/backyard/skills/backyard-handoff/"
 
 # The tools each level may offer (lower-cased). Anything else offered is a failure.
 allowed() { # <tool> <level>
@@ -69,15 +69,15 @@ run() { # <tool> <level> <probe>: runs call.sh in a fresh work dir; prints the w
     offered) rm -f "$T/req/probe.json" ;;
     write) printf '{"names":["%s"],"path":"%s/written.txt","content":"x"}' "$wname" "$w" > "$T/req/probe.json" ;;
     shell) printf '{"names":["%s"],"command":"touch %s/shell-ran"}' "$sname" "$w" > "$T/req/probe.json" ;;
-    write-garden) printf '{"names":["%s"],"path":"%s/garden/seeds/x/written.txt","content":"x"}' "$wname" "$T" > "$T/req/probe.json" ;;
-    read) mkdir -p "$T/garden/seeds/x"; echo "GARDEN-MARKER-$tool-$level" > "$T/garden/seeds/x/SEED.md"
-          printf '{"names":["%s"],"path":"%s/garden/seeds/x/SEED.md"}' "$rname" "$T" > "$T/req/probe.json" ;;
+    write-backyard) printf '{"names":["%s"],"path":"%s/backyard/seeds/x/written.txt","content":"x"}' "$wname" "$T" > "$T/req/probe.json" ;;
+    read) mkdir -p "$T/backyard/seeds/x"; echo "BACKYARD-MARKER-$tool-$level" > "$T/backyard/seeds/x/SEED.md"
+          printf '{"names":["%s"],"path":"%s/backyard/seeds/x/SEED.md"}' "$rname" "$T" > "$T/req/probe.json" ;;
   esac
   echo "Say ok." > "$T/prompt.md"
   local before; before="$(ls "$T/req" | grep -c '^[0-9]*\.json$')"
   # shellcheck disable=SC2046
   (cd "$w" && ANTHROPIC_BASE_URL="http://127.0.0.1:$MP" ANTHROPIC_API_KEY=dummy \
-     timeout 180 bash "$T/garden/garden/skills/garden-handoff/call.sh" "$tool" "$level" "$T/prompt.md" -- $(model_args "$tool") \
+     timeout 180 bash "$T/backyard/backyard/skills/backyard-handoff/call.sh" "$tool" "$level" "$T/prompt.md" -- $(model_args "$tool") \
      > "$w.out" 2>&1)
   echo "$before" > "$w.before"
 }
@@ -132,16 +132,16 @@ for tool in $TOOLS; do
     fi
 
     if [ "$level" = edit ]; then
-      rm -f "$T/garden/seeds/x/written.txt"; run "$tool" "$level" write-garden
-      if [ -e "$T/garden/seeds/x/written.txt" ]; then
-        note "$tool edit: can also write outside the working directory (the garden itself): checked afterwards only"
+      rm -f "$T/backyard/seeds/x/written.txt"; run "$tool" "$level" write-backyard
+      if [ -e "$T/backyard/seeds/x/written.txt" ]; then
+        note "$tool edit: can also write outside the working directory (the backyard itself): checked afterwards only"
       else
-        pass "$tool edit: writing outside the working directory (the garden itself) was refused"
+        pass "$tool edit: writing outside the working directory (the backyard itself) was refused"
       fi
     fi
 
     run "$tool" "$level" read; w="$T/work/$tool-$level-read"
-    if grep -lq "GARDEN-MARKER-$tool-$level" $(ls -d "$T"/req/[0-9]*.json | awk -F/ -v n="$(cat "$w.before")" '{f=$NF; sub(/\.json$/,"",f); if (f+0>n) print}') /dev/null; then
+    if grep -lq "BACKYARD-MARKER-$tool-$level" $(ls -d "$T"/req/[0-9]*.json | awk -F/ -v n="$(cat "$w.before")" '{f=$NF; sub(/\.json$/,"",f); if (f+0>n) print}') /dev/null; then
       pass "$tool $level: a file outside the working directory can be read"
     else
       fail "$tool $level: reading a file outside the working directory failed ($w.out)"

@@ -1,3 +1,3 @@
-# expect: without garden-escalate, autonomy
+# expect: without backyard-escalate, autonomy
 . "$FIXTURES/good-seeds.sh"
 sed -i '/^autonomy:/d' seeds/reviewer/SEED.md
