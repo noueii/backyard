@@ -3,7 +3,7 @@ name: backyard
 description: "Your bots (seeds) for software work. Routes every task (feature, fix, refactor, review, docs, chores, questions about code) to the seed that fits, with its rules and memory, or handles a one-off directly. Use when starting any software task, before acting on it."
 metadata:
   seeds-format: "2.0"
-  version: "3.0.0"
+  version: "4.0.0"
 ---
 # backyard
 

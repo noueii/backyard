@@ -157,11 +157,11 @@ expect "refuses a bad token" 2 bash "$K" verify edit "nonsense" "$P"
 expect "refuses a folder without git" 2 bash "$K" snapshot "$T/home"
 
 echo "sync.sh"
-# upstream: this repo as it is on disk, tagged v3.0.0
+# upstream: this repo as it is on disk, tagged v4.0.0
 mkdir -p "$T/up"
 (cd "$ROOT" && git ls-files -co --exclude-standard | while IFS= read -r f; do [ -e "$f" ] && printf '%s\0' "$f"; done \
   | tar --null -T - -cf -) | (cd "$T/up" && tar -xf -)
-git -C "$T/up" init -q && git -C "$T/up" add -A && git -C "$T/up" commit -qm "backyard 3.0.0" && git -C "$T/up" tag v3.0.0
+git -C "$T/up" init -q && git -C "$T/up" add -A && git -C "$T/up" commit -qm "backyard 4.0.0" && git -C "$T/up" tag v4.0.0
 git clone -q --bare "$T/up" "$T/up.git"
 # the user's backyard: a copy of upstream with its own (bare) origin
 git clone -q "$T/up.git" "$T/g" && git -C "$T/g" remote rename origin upstream
@@ -221,21 +221,21 @@ expect "staged: a second run changes nothing" 0 bash "$S" staged
 has "open the PR for"
 
 expect "upstream: up to date" 0 bash "$S" upstream
-has "up to date with v3.0.0"
-echo "release note" >> "$T/up/backyard/docs/README.md"; git -C "$T/up" commit -qam "readme: release note"; git -C "$T/up" tag v3.0.1
+has "up to date with v4.0.0"
+echo "release note" >> "$T/up/backyard/docs/README.md"; git -C "$T/up" commit -qam "readme: release note"; git -C "$T/up" tag v4.0.1
 git -C "$T/up" push -q "$T/up.git" main --tags
 before="$(git -C "$T/g" rev-parse HEAD)"
 expect "upstream: stages a release on a root branch" 0 bash "$S" upstream
-has "staged v3.0.1 on backyard/"
+has "staged v4.0.1 on backyard/"
 b="$(git -C "$T/g" for-each-ref --format='%(refname:short)' 'refs/heads/backyard/*upstream*')"
 [ "$(git -C "$T/g" rev-parse HEAD)" = "$before" ] && pass "  … the default branch is untouched" || fail "  … the default branch moved"
-git -C "$T/g" merge-base --is-ancestor v3.0.1 "$b" && pass "  … $b contains v3.0.1" || fail "  … the branch lacks v3.0.1"
-[ "$(git -C "$T/g" log -1 --format=%s "$b")" = "root: backyard v3.0.1" ] && pass "  … titled root: backyard v3.0.1" || fail "  … wrong title"
+git -C "$T/g" merge-base --is-ancestor v4.0.1 "$b" && pass "  … $b contains v4.0.1" || fail "  … the branch lacks v4.0.1"
+[ "$(git -C "$T/g" log -1 --format=%s "$b")" = "root: backyard v4.0.1" ] && pass "  … titled root: backyard v4.0.1" || fail "  … wrong title"
 expect "upstream: a second run doesn't stage it again" 0 bash "$S" upstream
 has "already has a branch"
 
 sed -i 's/^# backyard$/# backyard (mine)/' "$T/g/SKILL.md"; git -C "$T/g" commit -qam "root: my title"
-sed -i 's/^# backyard$/# backyard (upstream)/' "$T/up/SKILL.md"; git -C "$T/up" commit -qam "router: new title"; git -C "$T/up" tag v3.0.2
+sed -i 's/^# backyard$/# backyard (upstream)/' "$T/up/SKILL.md"; git -C "$T/up" commit -qam "router: new title"; git -C "$T/up" tag v4.0.2
 git -C "$T/up" push -q "$T/up.git" main --tags
 expect "upstream: a conflict stops with exit 3" 3 bash "$S" upstream
 has "SKILL.md"
