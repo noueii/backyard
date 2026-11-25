@@ -1,0 +1,20 @@
+# Structural checks only: no AI, no secrets. Runs in noueii/backyard and in every user's backyard.
+name: backyard
+on:
+  push:
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pyyaml
+      - name: validate the backyard
+        run: python3 backyard/check/validate.py .
+      # The rest only runs in noueii/backyard itself (a user's backyard has its own seeds, docs and memory).
+      - name: maintainer checks (upstream only)
+        if: github.repository == 'noueii/backyard'
+        run: |
+          bash backyard/dev/check-upstream.sh
+          bash backyard/dev/test-validate.sh
+          bash backyard/dev/test-scripts.sh

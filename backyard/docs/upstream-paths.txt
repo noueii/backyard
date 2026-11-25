@@ -1,0 +1,12 @@
+# Paths noueii/backyard owns: the root tier. sync brings their changes in as root PRs, and a retro (backyard/skills/backyard-memory/) stages changes to
+# them on root-tier branches. Everything else (docs/, seeds/, skills/, memory/, README.md, AGENTS.md,
+# CLAUDE.md) is yours. One path per line; a trailing / means the whole folder. Why each one is here:
+# backyard/docs/decisions/0002-framework-folder.md.
+# the router: tools find a skill only by a SKILL.md at the root of its folder
+SKILL.md
+# the framework: skills, docs, validator, maintainer files
+backyard/
+# CI: GitHub reads workflows only from .github/workflows/ at the root
+.github/workflows/backyard.yml
+# merge=union for memory files: git applies a .gitattributes only to paths at or below its own folder
+.gitattributes
