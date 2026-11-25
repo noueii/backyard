@@ -1,13 +1,13 @@
 ---
-name: garden-memory
-description: "Part of the garden skill, used through its router and seeds, never on its own. Reads and writes the garden's shared and per-seed memory, always locally, and improves the garden from it: retros, promotion, compaction, and staging behaviour changes on local branches. Use when a seed run starts, when something is worth remembering, and when a run ends."
+name: backyard-memory
+description: "Part of the backyard skill, used through its router and seeds, never on its own. Reads and writes the backyard's shared and per-seed memory, always locally, and improves the backyard from it: retros, promotion, compaction, and staging behaviour changes on local branches. Use when a seed run starts, when something is worth remembering, and when a run ends."
 metadata: { seeds-format: "2.0" }
 ---
 # memory
 
-Paths are relative to the garden root; the format is in `garden/docs/SPEC.md` §6-7. Supporting files, loaded **only at the end of a task** and only when needed: `garden/skills/garden-memory/retro.md` (a retro is due) and `garden/skills/garden-memory/stage.md` (a behaviour change is staged).
+Paths are relative to the backyard root; the format is in `backyard/docs/SPEC.md` §6-7. Supporting files, loaded **only at the end of a task** and only when needed: `backyard/skills/backyard-memory/retro.md` (a retro is due) and `backyard/skills/backyard-memory/stage.md` (a behaviour change is staged).
 
-Memory is committed locally in the live clone; behaviour changes go on local `garden/*` branches. **Nothing here pushes or merges:** `garden-sync` publishes, only when a seed's text says so or the owner asks.
+Memory is committed locally in the live clone; behaviour changes go on local `backyard/*` branches. **Nothing here pushes or merges:** `backyard-sync` publishes, only when a seed's text says so or the owner asks.
 
 ## Layout
 `memory/` (shared) and `seeds/<x>/memory/` (this seed's) each hold `INDEX.md` (one "read when" line per committed file, most valuable first), `committed/` (memories the owner stated, or promoted after a second sighting) and `pending/` (seen once; never indexed, never read at the start). Each file, `YYYY-MM-DD-<short-grepable-description>.md`, is a small frontmatter and a few lines: the memory, and why it holds. The root also has `memory/rejected.md`, the proposals the owner declined.
@@ -19,7 +19,7 @@ Memory is committed locally in the live clone; behaviour changes go on local `ga
 ## Capture (as you go): only what is worth remembering
 Write only when the owner **corrects** you or **states** a fact, decision or preference; something **fails** in a way the next run could avoid; or something **surprises** you (unlike what docs and memory say). A routine run writes nothing. Always through write.py, the body on stdin:
 ```sh
-W="python3 garden/skills/garden-memory/write.py"
+W="python3 backyard/skills/backyard-memory/write.py"
 echo "<the memory, and why it holds>" | $W new <memory folder> <description> --type <t> --source "<where from>" --seen <task>
 echo "<...>" | $W new <memory folder> <description> --type <t> --source 'owner: "<their words>"' --owner --when "<condition>" [--top]
 $W seen <pending file> <task>
@@ -37,11 +37,11 @@ $W seen <pending file> <task>
 - Never run a retro: say "retro due" in your report.
 
 ## End of the task
-1. **A retro is due** when write.py said a pending memory was **seen again**, or said **"compaction due"** (a budget past 80 %; `$W check <memory folder>` shows usage), or the **owner asks**. Then, at depth 0, follow `garden/skills/garden-memory/retro.md`. Otherwise load nothing more.
-2. **Stages:** if anything was staged, finish each as `garden/skills/garden-memory/stage.md` §3 says.
+1. **A retro is due** when write.py said a pending memory was **seen again**, or said **"compaction due"** (a budget past 80 %; `$W check <memory folder>` shows usage), or the **owner asks**. Then, at depth 0, follow `backyard/skills/backyard-memory/retro.md`. Otherwise load nothing more.
+2. **Stages:** if anything was staged, finish each as `backyard/skills/backyard-memory/stage.md` §3 says.
 3. **Commit memory locally** (depth 0 only), these paths only:
    ```sh
-   R="<garden root>"; git -C "$R" add -A -- memory 'seeds/*/memory'
+   R="<backyard root>"; git -C "$R" add -A -- memory 'seeds/*/memory'
    git -C "$R" diff --cached --quiet || git -C "$R" commit -q -m "memory: <task>"   # after a retro: memory: retro <seed>
    ```
    Leave anything else staged alone; if the commit fails, leave the changes. Say so in both cases.
@@ -52,4 +52,4 @@ No git (an `npx skills add` trial) or unwritable files: nothing is saved. Report
 ## Guardrails
 - **Memory never changes behaviour on its own:** only a staged change the owner merges does. Memory never changes which skills are mandatory or edits the live clone outside memory.
 - **Evidence or nothing:** a staged change cites a memory seen by 2 tasks, or 1 owner correction, quoted.
-- **Owner decisions stick:** read `memory/rejected.md` before proposing. A declined proposal (in conversation, or a `garden/*` PR closed unmerged, which sync records) gets a line, `$W reject "- YYYY-MM-DD | <proposal> | <reason, or: no reason given>"`, and is not proposed again without new evidence.
+- **Owner decisions stick:** read `memory/rejected.md` before proposing. A declined proposal (in conversation, or a `backyard/*` PR closed unmerged, which sync records) gets a line, `$W reject "- YYYY-MM-DD | <proposal> | <reason, or: no reason given>"`, and is not proposed again without new evidence.

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Every memory write goes through this script: it scans the text, keeps the promotion gate, keeps INDEX.md equal to
-committed/, and fails loudly at a full budget (no truncation). The layout and budgets are garden/check/validate.py's
-(garden/docs/SPEC.md §6-7). A memory folder is memory/ (shared) or seeds/<name>/memory/ (one seed's).
+committed/, and fails loudly at a full budget (no truncation). The layout and budgets are backyard/check/validate.py's
+(backyard/docs/SPEC.md §6-7). A memory folder is memory/ (shared) or seeds/<name>/memory/ (one seed's).
 
-Usage (paths relative to the garden root, or absolute inside it; a body is read from stdin):
+Usage (paths relative to the backyard root, or absolute inside it; a body is read from stdin):
   write.py new <memory folder> <description> --type <t> --source "<where from>" [--date YYYY-MM-DD]
                (--owner --when "<condition>" [--top] | --seen <task>)
       Writes <date>-<description>.md (description: short kebab-case words, grepable), type fact | decision |
@@ -24,12 +24,12 @@ import re
 import sys
 
 ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-sys.path.insert(0, os.path.join(ROOT, "garden", "check"))
+sys.path.insert(0, os.path.join(ROOT, "backyard", "check"))
 sys.dont_write_bytecode = True  # no __pycache__ in the live clone
 try:
     import validate as V  # noqa: E402  (the one table of formats and budgets)
 except ImportError as e:  # PyYAML missing: validate.py says so
-    sys.exit(f"write.py needs garden/check/validate.py and PyYAML: {e}")
+    sys.exit(f"write.py needs backyard/check/validate.py and PyYAML: {e}")
 
 B = V.MEMORY_BUDGETS
 
@@ -51,7 +51,7 @@ def must_be_clean(*texts):
 def inside(path):
     p = os.path.realpath(path if os.path.isabs(path) else os.path.join(ROOT, path))
     if not p.startswith(ROOT + os.sep):
-        fail(f"{path} is outside the garden ({ROOT})")
+        fail(f"{path} is outside the backyard ({ROOT})")
     return p, os.path.relpath(p, ROOT).replace(os.sep, "/")
 
 
@@ -125,7 +125,7 @@ def add_to_index(mdir, name, when, top):
 
 def full(what):
     fail(f"BUDGET FULL: {what}. Nothing was written. Compact or remove first "
-         "(garden/skills/garden-memory/retro.md, Compaction), then write again.")
+         "(backyard/skills/backyard-memory/retro.md, Compaction), then write again.")
 
 
 def count(mdir, part):
@@ -215,7 +215,7 @@ def cmd_seen(args):
     fm["seen"] = seen
     save(p, render(fm, body))
     print("write.py: seen by 1 task" if len(set(seen)) < 2 else f"write.py: seen by {len(set(seen))} tasks: a retro "
-          f"is due; it promotes this: promote {mdir}/pending/{name} --when \"<condition>\" (garden/skills/garden-memory/retro.md)")
+          f"is due; it promotes this: promote {mdir}/pending/{name} --when \"<condition>\" (backyard/skills/backyard-memory/retro.md)")
 
 
 def cmd_promote(args):

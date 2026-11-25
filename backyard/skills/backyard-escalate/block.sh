@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: block.sh --kind escalation|review|question|route --seed <name|garden> --question "<one question>" \
+# Usage: block.sh --kind escalation|review|question|route --seed <name|backyard> --question "<one question>" \
 #                 --why "<why docs and memory can't settle it>" [--option "<recommended>" --option ...]
 # Prints the fixed block that asks the owner. Put it at the end of your message and stop.
 # Refuses an empty or multi-line field, an unknown kind, a question with more than one "?", and more than 4 options.
@@ -21,7 +21,7 @@ for f in seed question why; do
   [ -n "${v// /}" ] || die "--$f is empty"
   case "$v" in *$'\n'*) die "--$f must be one line" ;; esac
 done
-printf '%s' "$seed" | grep -qE '^[a-z0-9]+(-[a-z0-9]+)*$' || die "--seed is a seed name (or garden, for the router)"
+printf '%s' "$seed" | grep -qE '^[a-z0-9]+(-[a-z0-9]+)*$' || die "--seed is a seed name (or backyard, for the router)"
 q="${question//[^?]/}"; [ "${#q}" -le 1 ] || die "--question holds ONE question (it has ${#q} question marks)"
 [ "${#options[@]}" -le 4 ] || die "at most 4 options"
 for o in ${options[@]+"${options[@]}"}; do

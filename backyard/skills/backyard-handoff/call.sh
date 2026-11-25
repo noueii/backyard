@@ -3,7 +3,7 @@
 #   tool:   claude | pi | omp | opencode   (the tool you are running in)
 #   access: read-only | edit | full        (the called seed's `access`)
 # Runs the called seed as a fresh, non-interactive session of the same tool, with only the tools its access
-# level allows, in the current directory, and prints its final answer. GARDEN_DRY=1 prints the command instead.
+# level allows, in the current directory, and prints its final answer. BACKYARD_DRY=1 prints the command instead.
 #   read-only: read and search files only: no edit, no write, no shell, no sub-agents, no MCP
 #   edit:      read-only + edit and write files: still no shell, no sub-agents, no MCP
 #   full:      the tool's defaults, under your own permission settings
@@ -19,19 +19,19 @@ shift 3
 prompt="$(cat "$prompt_file")"
 case "$access" in read-only|edit|full) ;; *) echo "call.sh: unknown access: $access" >&2; exit 2 ;; esac
 
-# The called seed reads its SEED.md, docs and memory from the garden, outside the directory it works in.
+# The called seed reads its SEED.md, docs and memory from the backyard, outside the directory it works in.
 G="$(cd "$(dirname "$0")/../../.." && pwd -P)"
 cmd=()
 envs=()
 case "$tool" in
   claude)
     # --tools is the allowlist of built-in tools; --strict-mcp-config with no --mcp-config loads no MCP server.
-    # -p refuses reads outside the working directory, so the garden gets a read-only allow rule.
-    read_garden="{\"permissions\":{\"allow\":[\"Read(/$G/**)\"]}}"
+    # -p refuses reads outside the working directory, so the backyard gets a read-only allow rule.
+    read_backyard="{\"permissions\":{\"allow\":[\"Read(/$G/**)\"]}}"
     case "$access" in
-      read-only) cmd=(claude -p --tools "Read,Grep,Glob" --strict-mcp-config --permission-mode dontAsk --settings "$read_garden") ;;
-      edit) cmd=(claude -p --tools "Read,Grep,Glob,Edit,Write" --strict-mcp-config --permission-mode acceptEdits --settings "$read_garden") ;;
-      full) cmd=(claude -p --settings "$read_garden") ;;
+      read-only) cmd=(claude -p --tools "Read,Grep,Glob" --strict-mcp-config --permission-mode dontAsk --settings "$read_backyard") ;;
+      edit) cmd=(claude -p --tools "Read,Grep,Glob,Edit,Write" --strict-mcp-config --permission-mode acceptEdits --settings "$read_backyard") ;;
+      full) cmd=(claude -p --settings "$read_backyard") ;;
     esac ;;
   pi)
     # pi has no permission prompts: --tools is an allowlist over built-in, extension and custom tools.
@@ -57,16 +57,16 @@ case "$tool" in
       envs=("OPENCODE_CONFIG_CONTENT={\"permission\":{\"external_directory\":{\"$G/**\":\"allow\"}}}")
       cmd=(opencode run)
     else
-      # external_directory gates paths outside the working directory: only the garden. At edit level that also
-      # lets the seed write there (edit patterns could not narrow it), so handoff checks the garden afterwards.
+      # external_directory gates paths outside the working directory: only the backyard. At edit level that also
+      # lets the seed write there (edit patterns could not narrow it), so handoff checks the backyard afterwards.
       ext="\"external_directory\":{\"*\":\"deny\",\"$G/**\":\"allow\"}"
-      envs=("OPENCODE_CONFIG_CONTENT={\"agent\":{\"garden-$access\":{\"mode\":\"primary\",\"description\":\"garden handoff, access $access\",\"permission\":{\"*\":\"deny\",$allow,$ext}}}}")
-      cmd=(opencode run --agent "garden-$access")
+      envs=("OPENCODE_CONFIG_CONTENT={\"agent\":{\"backyard-$access\":{\"mode\":\"primary\",\"description\":\"backyard handoff, access $access\",\"permission\":{\"*\":\"deny\",$allow,$ext}}}}")
+      cmd=(opencode run --agent "backyard-$access")
     fi ;;
   *) echo "call.sh: unknown tool: $tool" >&2; exit 2 ;;
 esac
 
-if [ "${GARDEN_DRY:-}" = 1 ]; then
+if [ "${BACKYARD_DRY:-}" = 1 ]; then
   printf '%q ' ${envs[@]+"${envs[@]}"} "${cmd[@]}" "$@"; printf '%q\n' "<prompt>"
   exit 0
 fi

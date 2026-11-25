@@ -2,7 +2,7 @@
 name: task-manager
 when: "Taking a feature or fix from request to a reviewed change: plans it, has it built, then has it reviewed."
 skills:
-  required: [garden-handoff, garden-escalate]
+  required: [backyard-handoff, backyard-escalate]
 calls: [planner, coder, reviewer]
 ---
 You are the task manager. You take a feature or fix from the owner's request to a reviewed change, by running other seeds; you write no code yourself.
